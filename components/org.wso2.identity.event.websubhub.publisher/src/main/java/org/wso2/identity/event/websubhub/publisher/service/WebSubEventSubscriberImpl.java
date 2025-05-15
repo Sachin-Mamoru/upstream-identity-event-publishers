@@ -59,20 +59,22 @@ public class WebSubEventSubscriberImpl implements WebhookSubscriber {
     }
 
     @Override
-    public boolean subscribe(List<String> topics, String callbackUrl, String tenantDomain) throws WebhookMgtException {
+    public CompletableFuture<Boolean> subscribe(List<String> topics, String callbackUrl, String tenantDomain) {
 
-        try {
-            for (String topic : topics) {
-                makeSubscriptionAPICall(constructHubTopic(topic, tenantDomain), getWebSubBaseURL(),
-                        WebSubHubAdapterConstants.Http.SUBSCRIBE, callbackUrl);
-                log.debug("WebSub Hub subscription successful for topic: " + topic + " with callback URL: " +
-                        callbackUrl + " in tenant: " + tenantDomain);
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                for (String topic : topics) {
+                    makeSubscriptionAPICall(constructHubTopic(topic, tenantDomain), getWebSubBaseURL(),
+                            WebSubHubAdapterConstants.Http.SUBSCRIBE, callbackUrl);
+                    log.debug("WebSub Hub subscription successful for topic: " + topic + " with callback URL: " +
+                            callbackUrl + " in tenant: " + tenantDomain);
+                }
+                return true;
+            } catch (WebSubAdapterException e) {
+                log.error("Error subscribing to topics in WebSub Hub.", e);
+                throw new RuntimeException("Failed to subscribe to topics in WebSub Hub", e);
             }
-            return true;
-        } catch (WebSubAdapterException e) {
-            log.error("Error subscribing to topics in WebSub Hub.", e);
-            throw new WebhookMgtException("Failed to subscribe to topics in WebSub Hub", e);
-        }
+        });
     }
 
     @Override
