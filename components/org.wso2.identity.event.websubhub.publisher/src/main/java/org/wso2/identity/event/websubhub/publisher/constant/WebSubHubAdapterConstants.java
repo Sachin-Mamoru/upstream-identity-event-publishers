@@ -23,24 +23,32 @@ package org.wso2.identity.event.websubhub.publisher.constant;
  */
 public class WebSubHubAdapterConstants {
 
+    public static final String WEB_SUB_HUB_ADAPTER_NAME = "webSubHubAdapter";
+
     /**
      * Configuration related constants.
      */
     public static class Config {
+
         public static final String CONFIG_FILE_NAME = "identity-outbound-adapter.properties";
-        private Config() {}
+
+        private Config() {
+
+        }
     }
 
     /**
-    * WebSub Hub Adapter related constants.
-    */
+     * WebSub Hub Adapter related constants.
+     */
     public static class Http {
+
         public static final String TOPIC_SEPARATOR = "-";
         public static final String URL_PARAM_SEPARATOR = "&";
         public static final String URL_KEY_VALUE_SEPARATOR = "=";
         public static final String PUBLISH = "publish";
         public static final String HUB_MODE = "hub.mode";
         public static final String HUB_TOPIC = "hub.topic";
+        public static final String HUB_CALLBACK = "hub.callback";
         public static final String HUB_REASON = "hub.reason";
         public static final String HUB_ACTIVE_SUBS = "hub.active.subscribers";
         public static final String REGISTER = "register";
@@ -55,7 +63,12 @@ public class WebSubHubAdapterConstants {
         public static final Integer DEFAULT_HTTP_CONNECTION_REQUEST_TIMEOUT = 300;
         public static final Integer DEFAULT_HTTP_MAX_CONNECTIONS = 20;
         public static final Integer DEFAULT_HTTP_MAX_CONNECTIONS_PER_ROUTE = 2;
-        private Http() {}
+        public static final String SUBSCRIBE = "subscribe";
+        public static final String UNSUBSCRIBE = "unsubscribe";
+
+        private Http() {
+
+        }
     }
 
     /**
@@ -67,19 +80,26 @@ public class WebSubHubAdapterConstants {
                 "WebSub Hub base URL is not configured."),
         ERROR_PUBLISHING_EVENT_INVALID_PAYLOAD("60002", "Invalid payload provided.",
                 "Event payload cannot be processed."),
-        ERROR_NULL_EVENT_PAYLOAD("60003", "Invalid event payload input ", "Event payload input cannot be null."),
-        ERROR_INVALID_EVENT_URI("60004", "Invalid event URI input", "Event URI input cannot be null or empty."),
-        ERROR_INVALID_EVENT_TOPIC("60005", "Invalid event topic input", "Event topic input cannot be null or empty."),
+        ERROR_NULL_EVENT_PAYLOAD("60003", "Invalid event payload input ",
+                "Event payload input cannot be null."),
+        ERROR_INVALID_EVENT_URI("60004", "Invalid event URI input",
+                "Event URI input cannot be null or empty."),
+        ERROR_INVALID_EVENT_TOPIC("60005", "Invalid event topic input",
+                "Event topic input cannot be null or empty."),
         ERROR_INVALID_EVENT_ORGANIZATION_NAME("60006", "Invalid organization name input",
                 "Event organization name input cannot be null or empty."),
-        ERROR_INVALID_TOPIC("60007", "Invalid WebSub hub topic input", "WebSub hub topic cannot be null " +
-                "or empty."),
-        ERROR_INVALID_WEB_SUB_HUB_BASE_URL("60008", "Invalid WebSub hub base URL input", "WebSub hub base URL cannot " +
-                "be null or empty."),
-        ERROR_INVALID_WEB_SUB_OPERATION("60009", "Invalid WebSub operation input", "WebSub operation cannot be null " +
-                "or empty."),
+        ERROR_INVALID_TOPIC("60007", "Invalid WebSub hub topic input",
+                "WebSub hub topic cannot be null or empty."),
+        ERROR_INVALID_WEB_SUB_HUB_BASE_URL("60008", "Invalid WebSub hub base URL input",
+                "WebSub hub base URL cannot be null or empty."),
+        ERROR_INVALID_WEB_SUB_OPERATION("60009", "Invalid WebSub operation input",
+                "WebSub operation cannot be null or empty."),
         WEB_SUB_HUB_ADAPTER_DISABLED("60010", "WebSub Hub adapter is disabled.",
                 "WebSub Hub adapter is disabled."),
+        ERROR_INVALID_CALLBACK_URL("60011", "Invalid callback URL input",
+                "Callback URL cannot be null or empty."),
+        ERROR_INVALID_SUBSCRIPTION_TOPICS("60012", "Invalid subscription topics",
+                "Subscription topics cannot be null or empty."),
 
         // server errors
         ERROR_REGISTERING_HUB_TOPIC("65001", "Error registering WebSub Hub topic.",
@@ -87,7 +107,8 @@ public class WebSubHubAdapterConstants {
         ERROR_DEREGISTERING_HUB_TOPIC("65002", "Error de-registering WebSub Hub topic.",
                 "Server error encountered while de-registering the WebSub Hub topic: %s, tenant: %s."),
         ERROR_BACKEND_ERROR_FROM_WEBSUB_HUB("65003", "Backend error from WebSub Hub topic management.",
-                "Backend error received from WebSubHub topic management, topic: %s, operation: %s, payload: %s."),
+                "Backend error received from WebSubHub topic management, topic: %s, operation: %s, " +
+                        "payload: %s."),
         ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB("65004", "Error response from WebSub Hub.",
                 "Invalid response received from WebSub Hub, topic: %s, operation: %s, payload: %s."),
         ERROR_EMPTY_RESPONSE_FROM_WEBSUB_HUB("65005", "Empty Response from WebSub Hub.",
@@ -98,8 +119,19 @@ public class WebSubHubAdapterConstants {
                 "Server error encountered while preparing SSL context for WebSubHub http client."),
         ERROR_CREATING_ASYNC_HTTP_CLIENT("65008", "Error while creating the Async HTTP client.",
                 "Server error encountered while creating the Async HTTP Client of WebSub Hub Adapter."),
-        TOPIC_DEREGISTRATION_FAILURE_ACTIVE_SUBS("65009", "Error occurred while de-registering topic", "Backend error" +
-                " received from WebSubHub while attempting to de-register topic: %s. Active subscribers: %s.");
+        TOPIC_DEREGISTRATION_FAILURE_ACTIVE_SUBS("65009", "Error occurred while de-registering topic",
+                "Backend error" +
+                " received from WebSubHub while attempting to de-register topic: %s. Active subscribers: %s."),
+        ERROR_SUBSCRIBING_TO_TOPIC("65010", "Error subscribing to WebSub Hub topic.",
+                "Server error encountered while subscribing to the WebSub Hub topic: %s, tenant: %s, " +
+                        "callback: %s."),
+        ERROR_UNSUBSCRIBING_FROM_TOPIC("65011", "Error unsubscribing from WebSub Hub topic.",
+                "Server error encountered while unsubscribing from the WebSub Hub topic: %s, tenant: %s, " +
+                        "callback: %s."),
+        ERROR_SUBSCRIPTION_ALREADY_EXISTS("65012", "Subscription already exists.",
+                "Subscription already exists for topic: %s and callback: %s."),
+        ERROR_SUBSCRIPTION_NOT_FOUND("65013", "Subscription not found.",
+                "No subscription found for topic: %s and callback: %s.");
 
         private static final String WEB_SUB_ADAPTER_ERROR_CODE_PREFIX = "WEBSUB-";
         private final String code;
@@ -107,20 +139,24 @@ public class WebSubHubAdapterConstants {
         private final String description;
 
         ErrorMessages(String code, String message, String description) {
+
             this.code = code;
             this.message = message;
             this.description = description;
         }
 
         public String getCode() {
+
             return WEB_SUB_ADAPTER_ERROR_CODE_PREFIX + code;
         }
 
         public String getMessage() {
+
             return message;
         }
 
         public String getDescription() {
+
             return description;
         }
     }
@@ -130,7 +166,9 @@ public class WebSubHubAdapterConstants {
      */
     public static class LogConstants {
 
-        private LogConstants() {}
+        private LogConstants() {
+
+        }
 
         public static final String WEB_SUB_HUB_ADAPTER = "web-sub-hub-adapter";
 
@@ -139,9 +177,13 @@ public class WebSubHubAdapterConstants {
          */
         public static class ActionIDs {
 
-            private ActionIDs() {}
+            private ActionIDs() {
+
+            }
 
             public static final String PUBLISH_EVENT = "publish-event";
+            public static final String SUBSCRIBE = "subscribe";
+            public static final String UNSUBSCRIBE = "unsubscribe";
         }
 
         /**
@@ -149,7 +191,9 @@ public class WebSubHubAdapterConstants {
          */
         public static class InputKeys {
 
-            private InputKeys() {}
+            private InputKeys() {
+
+            }
 
             public static final String URL = "url";
             public static final String TENANT_DOMAIN = "tenant domain";
@@ -157,5 +201,7 @@ public class WebSubHubAdapterConstants {
         }
     }
 
-    private WebSubHubAdapterConstants() {}
+    private WebSubHubAdapterConstants() {
+
+    }
 }

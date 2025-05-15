@@ -47,9 +47,9 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for the WebSubHubAdapterServiceImpl class.
  */
-public class WebSubHubAdapterServiceImplTest {
+public class WebSubEventPublisherImplTest {
 
-    private WebSubHubAdapterServiceImpl adapterService;
+    private WebSubEventPublisherImpl adapterService;
 
     @Mock
     private ClientManager mockClientManager;
@@ -60,11 +60,13 @@ public class WebSubHubAdapterServiceImplTest {
     @Mock
     private HttpResponse mockHttpResponse;
 
+    MockedStatic<WebSubHubAdapterDataHolder> mockedStaticDataHolder;
+
     @BeforeClass
     public void setUp() {
 
         MockitoAnnotations.openMocks(this);
-        adapterService = spy(new WebSubHubAdapterServiceImpl());
+        adapterService = spy(new WebSubEventPublisherImpl());
 
         MockedStatic<WebSubHubAdapterDataHolder> mockedStaticDataHolder = mockStatic(WebSubHubAdapterDataHolder.class);
         WebSubHubAdapterDataHolder mockDataHolder = mock(WebSubHubAdapterDataHolder.class);
