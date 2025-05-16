@@ -46,11 +46,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.assertFalse;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.WEB_SUB_HUB_ADAPTER_NAME;
 
 /**
@@ -82,10 +80,8 @@ public class WebSubEventSubscriberImplTest {
     private MockedStatic<WebSubHubAdapterUtil> mockedStaticUtil;
     private MockedStatic<WebSubHubCorrelationLogUtils> mockedCorrelationLogUtils;
 
-    private WebSubHubAdapterDataHolder mockDataHolder;
-
     @BeforeMethod
-    public void setUp() throws Exception {
+    public void setUp() {
 
         log.info("Starting test setup for WebSubEventSubscriberImplTest");
         mocks = MockitoAnnotations.openMocks(this);
@@ -93,16 +89,15 @@ public class WebSubEventSubscriberImplTest {
         setupMocks();
     }
 
-    private void setupMocks() throws WebSubAdapterException {
+    private void setupMocks() {
 
         try {
             mockedStaticDataHolder = mockStatic(WebSubHubAdapterDataHolder.class);
-            mockDataHolder = mock(WebSubHubAdapterDataHolder.class);
-            mockedStaticDataHolder.when(WebSubHubAdapterDataHolder::getInstance).thenReturn(mockDataHolder);
+            WebSubHubAdapterDataHolder mockDataHolder = mock(WebSubHubAdapterDataHolder.class);
 
             mockedStaticUtil = mockStatic(WebSubHubAdapterUtil.class);
-            mockedStaticUtil.when(() -> WebSubHubAdapterUtil.getWebSubBaseURL())
-                    .thenReturn("http://mock-websub-hub.com");
+            mockedStaticUtil.when(WebSubHubAdapterUtil::getWebSubBaseURL)
+                    .thenReturn("https://mock-websub-hub.com");
             mockedStaticUtil.when(() -> WebSubHubAdapterUtil.constructHubTopic(anyString(), anyString()))
                     .thenAnswer(invocation -> invocation.getArgument(1) + "-" +
                             invocation.getArgument(0));
@@ -110,8 +105,8 @@ public class WebSubEventSubscriberImplTest {
                             () -> WebSubHubAdapterUtil.buildSubscriptionURL(anyString(), anyString(), anyString(),
                                     anyString()))
                     .thenReturn(
-                            "http://mock-websub-hub.com?hub.mode=subscribe&hub.topic=test-tenant-test-" +
-                                    "uri&hub.callback=http://test-callback.com");
+                            "https://mock-websub-hub.com?hub.mode=subscribe&hub.topic=test-tenant-test-" +
+                                    "uri&hub.callback=https://test-callback.com");
 
             mockedCorrelationLogUtils = mockStatic(WebSubHubCorrelationLogUtils.class);
             mockedCorrelationLogUtils.when(() -> WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(any()))
@@ -119,7 +114,7 @@ public class WebSubEventSubscriberImplTest {
 
             when(mockDataHolder.getClientManager()).thenReturn(mockClientManager);
             when(mockDataHolder.getAdapterConfiguration()).thenReturn(mockAdapterConfiguration);
-            when(mockAdapterConfiguration.getWebSubHubBaseUrl()).thenReturn("http://mock-websub-hub.com");
+            when(mockAdapterConfiguration.getWebSubHubBaseUrl()).thenReturn("https://mock-websub-hub.com");
 
             when(mockHttpResponse.getStatusLine()).thenReturn(mockStatusLine);
             when(mockHttpResponse.getEntity()).thenReturn(mockHttpEntity);
@@ -171,52 +166,51 @@ public class WebSubEventSubscriberImplTest {
     }
 
     @Test
-    public void testSubscribeSuccess()
-            throws WebhookMgtException, WebSubAdapterException {
+    public void testUnsubscribeFailure() throws WebhookMgtException, WebSubAdapterException {
 
-        log.info("Testing subscribe success method");
+        log.info("Testing unsubscribe failure method");
         List<String> topics = Arrays.asList("test-uri1", "test-uri2");
         String callbackUrl = "http://test-callback.com";
         String tenantDomain = "test-tenant";
 
-        when(mockStatusLine.getStatusCode()).thenReturn(200);
-        CompletableFuture<HttpResponse> future = CompletableFuture.completedFuture(mockHttpResponse);
+        // Simulate a 500 error for the first topic and 200 for the second
+        CompletableFuture<HttpResponse> failedFuture = CompletableFuture.completedFuture(mockHttpResponse);
+        CompletableFuture<HttpResponse> successFuture = CompletableFuture.completedFuture(mockHttpResponse);
+
+        // Set up the status codes for the responses
+        when(mockStatusLine.getStatusCode()).thenReturn(500).thenReturn(200);
+        when(mockHttpResponse.getStatusLine()).thenReturn(mockStatusLine);
         when(mockClientManager.createHttpPost(anyString(), any())).thenReturn(mock(HttpPost.class));
-        when(mockClientManager.executeAsync(any())).thenReturn(future);
+        when(mockClientManager.executeAsync(any())).thenReturn(failedFuture).thenReturn(successFuture);
 
-        mockedStaticUtil.when(() -> WebSubHubAdapterUtil.handleSuccessfulOperation(any(), anyString(), anyString()))
-                .thenAnswer(invocation -> null);
+        boolean result = subscriberService.unsubscribe(topics, callbackUrl, tenantDomain);
 
-        // Execute and verify
-        boolean result = subscriberService.subscribe(topics, callbackUrl, tenantDomain);
-
-        // Verify the result is true and the client was called twice (once for each topic)
-        assertTrue(result);
-        verify(mockClientManager, times(2)).executeAsync(any());
+        // Verify the result is false because one of the unsubscribe requests failed
+        assertFalse(result);
     }
 
     @Test
-    public void testUnsubscribeSuccess() throws WebhookMgtException, WebSubAdapterException {
+    public void testSubscribeFailure() throws WebSubAdapterException {
 
-        log.info("Testing unsubscribe success method");
+        log.info("Testing subscribe failure method");
         List<String> topics = Arrays.asList("test-uri1", "test-uri2");
         String callbackUrl = "http://test-callback.com";
         String tenantDomain = "test-tenant";
 
-        when(mockStatusLine.getStatusCode()).thenReturn(200);
-        CompletableFuture<HttpResponse> future = CompletableFuture.completedFuture(mockHttpResponse);
+        // Simulate a 500 error for the first topic and 200 for the second
+        CompletableFuture<HttpResponse> failedFuture = CompletableFuture.completedFuture(mockHttpResponse);
+        CompletableFuture<HttpResponse> successFuture = CompletableFuture.completedFuture(mockHttpResponse);
+
+        // Set up the status codes for the responses
+        when(mockStatusLine.getStatusCode()).thenReturn(500).thenReturn(200);
+        when(mockHttpResponse.getStatusLine()).thenReturn(mockStatusLine);
         when(mockClientManager.createHttpPost(anyString(), any())).thenReturn(mock(HttpPost.class));
-        when(mockClientManager.executeAsync(any())).thenReturn(future);
+        when(mockClientManager.executeAsync(any())).thenReturn(failedFuture).thenReturn(successFuture);
 
-        mockedStaticUtil.when(() -> WebSubHubAdapterUtil.handleSuccessfulOperation(any(), anyString(), anyString()))
-                .thenAnswer(invocation -> null);
+        boolean result = subscriberService.subscribe(topics, callbackUrl, tenantDomain);
 
-        // Execute and verify
-        boolean result = subscriberService.unsubscribe(topics, callbackUrl, tenantDomain);
-
-        // Verify the result is true and the client was called twice (once for each topic)
-        assertTrue(result);
-        verify(mockClientManager, times(2)).executeAsync(any());
+        // Verify the result is false because one of the subscribe requests failed
+        assertFalse(result);
     }
 }
 

@@ -35,6 +35,7 @@ import org.wso2.identity.event.websubhub.publisher.internal.WebSubHubAdapterData
 import org.wso2.identity.event.websubhub.publisher.util.WebSubHubCorrelationLogUtils;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -59,22 +60,42 @@ public class WebSubEventSubscriberImpl implements WebhookSubscriber {
     }
 
     @Override
-    public CompletableFuture<Boolean> subscribe(List<String> topics, String callbackUrl, String tenantDomain) {
+    public boolean subscribe(List<String> topics, String callbackUrl, String tenantDomain) {
 
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                for (String topic : topics) {
-                    makeSubscriptionAPICall(constructHubTopic(topic, tenantDomain), getWebSubBaseURL(),
-                            WebSubHubAdapterConstants.Http.SUBSCRIBE, callbackUrl);
-                    log.debug("WebSub Hub subscription successful for topic: " + topic + " with callback URL: " +
-                            callbackUrl + " in tenant: " + tenantDomain);
-                }
-                return true;
-            } catch (WebSubAdapterException e) {
-                log.error("Error subscribing to topics in WebSub Hub.", e);
-                throw new RuntimeException("Failed to subscribe to topics in WebSub Hub", e);
+        try {
+            // Create a list to hold all the futures
+            List<CompletableFuture<Boolean>> futures = new ArrayList<>();
+
+            for (String topic : topics) {
+                futures.add(CompletableFuture.supplyAsync(() -> {
+                    try {
+                        makeSubscriptionAPICall(constructHubTopic(topic, tenantDomain),
+                                getWebSubBaseURL(),
+                                WebSubHubAdapterConstants.Http.SUBSCRIBE,
+                                callbackUrl);
+                        log.debug("WebSub Hub subscription successful for topic: " + topic +
+                                " with callback URL: " + callbackUrl + " in tenant: " + tenantDomain);
+                        return true;
+                    } catch (WebSubAdapterException e) {
+                        log.error("Error subscribing to topic: " + topic, e);
+                        return false;
+                    }
+                }));
             }
-        });
+
+            // Combine all the futures into a single future and wait for completion
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+
+            // Wait for all futures to complete
+            allFutures.join();
+
+            // Check if any subscription failed
+            return futures.stream().allMatch(CompletableFuture::join);
+
+        } catch (Exception e) {
+            log.error("Unexpected error during subscription process", e);
+            return false;
+        }
     }
 
     @Override
@@ -82,16 +103,38 @@ public class WebSubEventSubscriberImpl implements WebhookSubscriber {
             throws WebhookMgtException {
 
         try {
+            // Create a list to hold all the futures
+            List<CompletableFuture<Boolean>> futures = new ArrayList<>();
+
             for (String topic : topics) {
-                makeSubscriptionAPICall(constructHubTopic(topic, tenantDomain), getWebSubBaseURL(),
-                        WebSubHubAdapterConstants.Http.UNSUBSCRIBE, callbackUrl);
-                log.debug("WebSub Hub unsubscription successful for topic: " + topic + " with callback URL: " +
-                        callbackUrl + " in tenant: " + tenantDomain);
+                futures.add(CompletableFuture.supplyAsync(() -> {
+                    try {
+                        makeSubscriptionAPICall(constructHubTopic(topic, tenantDomain),
+                                getWebSubBaseURL(),
+                                WebSubHubAdapterConstants.Http.UNSUBSCRIBE,
+                                callbackUrl);
+                        log.debug("WebSub Hub unsubscription successful for topic: " + topic +
+                                " with callback URL: " + callbackUrl + " in tenant: " + tenantDomain);
+                        return true;
+                    } catch (WebSubAdapterException e) {
+                        log.error("Error unsubscribing to topic: " + topic, e);
+                        return false;
+                    }
+                }));
             }
-            return true;
-        } catch (WebSubAdapterException e) {
-            log.error("Error unsubscribing from topics in WebSub Hub.", e);
-            throw new WebhookMgtException("Failed to unsubscribe from topics in WebSub Hub", e);
+
+            // Combine all the futures into a single future and wait for completion
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+
+            // Wait for all futures to complete
+            allFutures.join();
+
+            // Check if any unsubscription failed
+            return futures.stream().allMatch(CompletableFuture::join);
+
+        } catch (Exception e) {
+            log.error("Unexpected error during unsubscription process", e);
+            return false;
         }
     }
 
