@@ -142,18 +142,11 @@ public class WebSubEventPublisherImpl implements EventPublisher {
         WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
         final long requestStartTime = System.currentTimeMillis();
 
-        CompletableFuture<HttpResponse> future = clientManager.executeAsync(httpPost);
-
-        future.thenAccept(response -> {
-            try {
-                handleTopicMgtResponse((CloseableHttpResponse) response, httpPost, topic, operation, requestStartTime);
-            } catch (IOException | WebSubAdapterException e) {
-                log.error("Handling topic management response failed. ", e);
-            }
-        }).exceptionally(ex -> {
-            log.error("Topic management API call failed. ", ex);
-            return null;
-        });
+        try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.execute(httpPost)) {
+            handleTopicMgtResponse(response, httpPost, topic, operation, requestStartTime);
+        } catch (IOException | WebSubAdapterException e) {
+            log.error("Topic management API call failed. ", e);
+        }
     }
 
     private void handleTopicMgtResponse(CloseableHttpResponse response, HttpPost httpPost,

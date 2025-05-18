@@ -75,5 +75,3 @@ public class WebSubHubAdapterServiceComponent {
         log.debug("Successfully de-activated the WebSub Hub adapter service.");
     }
 }
-
-

@@ -25,9 +25,11 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
 import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
@@ -61,44 +63,51 @@ public class ClientManager {
 
     private static final Log LOG = LogFactory.getLog(ClientManager.class);
     private final CloseableHttpAsyncClient httpAsyncClient;
+    private final CloseableHttpClient httpClient;
 
-    /**
-     * Creates a client manager.
-     *
-     * @throws WebSubAdapterException on errors while creating the http client.
-     */
     public ClientManager() throws WebSubAdapterException {
 
-        PoolingNHttpClientConnectionManager connectionManager;
         try {
-            connectionManager = createPoolingConnectionManager();
-            LOG.debug("Successfully created PoolingNHttpClientConnectionManager.");
-        } catch (IOException e) {
-            throw WebSubHubAdapterUtil.handleServerException
-                    (WebSubHubAdapterConstants.ErrorMessages.ERROR_CREATING_ASYNC_HTTP_CLIENT, e);
-        }
+            PoolingNHttpClientConnectionManager asyncConnectionManager =
+                    createPoolingConnectionManager(PoolingNHttpClientConnectionManager.class);
+            RequestConfig config = createRequestConfig();
 
-        RequestConfig config = createRequestConfig();
-        HttpAsyncClientBuilder httpClientBuilder = HttpAsyncClients.custom().setDefaultRequestConfig(config);
-        addSslContext(httpClientBuilder);
-        httpClientBuilder.setConnectionManager(connectionManager);
-        httpAsyncClient = httpClientBuilder.build();
-        httpAsyncClient.start();
-        LOG.debug("HttpAsyncClient started");
+            // Initialize HttpAsyncClient
+            HttpAsyncClientBuilder httpAsyncClientBuilder = HttpAsyncClients.custom()
+                    .setDefaultRequestConfig(config)
+                    .setConnectionManager(asyncConnectionManager)
+                    .setSSLContext(createSSLContext());
+            httpAsyncClient = httpAsyncClientBuilder.build();
+            httpAsyncClient.start();
+            LOG.debug("HttpAsyncClient started");
+
+            // Initialize CloseableHttpClient
+            PoolingHttpClientConnectionManager syncConnectionManager =
+                    createPoolingConnectionManager(PoolingHttpClientConnectionManager.class);
+            httpClient = HttpClients.custom()
+                    .setDefaultRequestConfig(config)
+                    .setConnectionManager(syncConnectionManager)
+                    .setSSLContext(createSSLContext())
+                    .build();
+            LOG.debug("CloseableHttpClient initialized with SSL and connection configurations");
+        } catch (IOException e) {
+            throw WebSubHubAdapterUtil.handleServerException(
+                    WebSubHubAdapterConstants.ErrorMessages.ERROR_GETTING_ASYNC_CLIENT, e);
+        }
     }
 
-    /**
-     * Get HTTP client properly configured with tenant configurations.
-     *
-     * @return CloseableHttpAsyncClient instance.
-     */
-    public CloseableHttpAsyncClient getClient() {
+    public CloseableHttpAsyncClient getHttpAsyncClient() {
 
         if (!httpAsyncClient.isRunning()) {
             LOG.debug("HttpAsyncClient is not running, starting client");
             httpAsyncClient.start();
         }
         return httpAsyncClient;
+    }
+
+    public CloseableHttpClient getHttpClient() {
+
+        return httpClient;
     }
 
     private RequestConfig createRequestConfig() {
@@ -115,43 +124,49 @@ public class ClientManager {
                 .build();
     }
 
-    private PoolingNHttpClientConnectionManager createPoolingConnectionManager() throws IOException {
-
-        int maxConnections = WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration()
-                .getDefaultMaxConnections();
-        int maxConnectionsPerRoute = WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration()
-                .getDefaultMaxConnectionsPerRoute();
-
-        ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor();
-        PoolingNHttpClientConnectionManager poolingHttpClientConnectionMgr = new
-                PoolingNHttpClientConnectionManager(ioReactor);
-        poolingHttpClientConnectionMgr.setMaxTotal(maxConnections);
-        poolingHttpClientConnectionMgr.setDefaultMaxPerRoute(maxConnectionsPerRoute);
-        LOG.debug("PoolingNHttpClientConnectionManager created with maxConnections: " + maxConnections +
-                " and maxConnectionsPerRoute: " + maxConnectionsPerRoute);
-        return poolingHttpClientConnectionMgr;
-    }
-
-    private void addSslContext(HttpAsyncClientBuilder builder) throws WebSubAdapterException {
+    private SSLContext createSSLContext() throws WebSubAdapterException {
 
         try {
-            SSLContext sslContext = SSLContexts.custom()
-            //default trust strategy is used (trusting all certificates in the provided trust store).
+            return SSLContexts.custom()
                     .loadTrustMaterial(WebSubHubAdapterDataHolder.getInstance().getTrustStore(), null)
                     .build();
-            builder.setSSLContext(sslContext);
-            builder.setSSLHostnameVerifier(new DefaultHostnameVerifier());
-            LOG.debug("SSL context and hostname verifier added");
         } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
-            throw WebSubHubAdapterUtil.handleServerException
-                    (WebSubHubAdapterConstants.ErrorMessages.ERROR_CREATING_SSL_CONTEXT, e);
+            throw WebSubHubAdapterUtil.handleServerException(
+                    WebSubHubAdapterConstants.ErrorMessages.ERROR_CREATING_SSL_CONTEXT, e);
+        }
+    }
+
+    private <T> T createPoolingConnectionManager(Class<T> managerType) throws IOException {
+
+        int maxConnections =
+                WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().getDefaultMaxConnections();
+        int maxConnectionsPerRoute =
+                WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().getDefaultMaxConnectionsPerRoute();
+
+        if (managerType.equals(PoolingNHttpClientConnectionManager.class)) {
+            ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor();
+            PoolingNHttpClientConnectionManager manager = new PoolingNHttpClientConnectionManager(ioReactor);
+            manager.setMaxTotal(maxConnections);
+            manager.setDefaultMaxPerRoute(maxConnectionsPerRoute);
+            LOG.debug("PoolingNHttpClientConnectionManager created with maxConnections: " + maxConnections +
+                    " and maxConnectionsPerRoute: " + maxConnectionsPerRoute);
+            return managerType.cast(manager);
+        } else if (managerType.equals(PoolingHttpClientConnectionManager.class)) {
+            PoolingHttpClientConnectionManager manager = new PoolingHttpClientConnectionManager();
+            manager.setMaxTotal(maxConnections);
+            manager.setDefaultMaxPerRoute(maxConnectionsPerRoute);
+            LOG.debug("PoolingHttpClientConnectionManager created with maxConnections: " + maxConnections +
+                    " and maxConnectionsPerRoute: " + maxConnectionsPerRoute);
+            return managerType.cast(manager);
+        } else {
+            throw new IllegalArgumentException("Unsupported connection manager type: " + managerType.getName());
         }
     }
 
     /**
      * Create an HTTP POST request.
      *
-     * @param url The URL for the HTTP POST request.
+     * @param url     The URL for the HTTP POST request.
      * @param payload The payload to include in the request body.
      * @return A configured HttpPost instance.
      * @throws WebSubAdapterException If an error occurs while creating the request.
@@ -188,7 +203,7 @@ public class ClientManager {
         //TODO: Incorporate retry mechanism
         return CompletableFuture.supplyAsync(() -> {
             try {
-                return getClient().execute(httpPost, null).get();
+                return getHttpAsyncClient().execute(httpPost, null).get();
             } catch (InterruptedException ie) {
                 // Restore interrupted status
                 Thread.currentThread().interrupt();
@@ -199,5 +214,20 @@ public class ClientManager {
                 throw new IdentityRuntimeException("Exception occurred", ex);
             }
         });
+    }
+
+    /**
+     * Execute an HTTP POST request synchronously.
+     *
+     * @param httpPost The HTTP POST request to execute.
+     * @return The HTTP response.
+     */
+    public HttpResponse execute(HttpPost httpPost) {
+
+        try {
+            return getHttpClient().execute(httpPost);
+        } catch (IOException e) {
+            throw new IdentityRuntimeException("Error occurred while executing HTTP POST request", e);
+        }
     }
 }
