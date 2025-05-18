@@ -25,7 +25,7 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.wso2.carbon.identity.webhook.management.api.service.WebhookSubscriber;
+import org.wso2.carbon.identity.webhook.management.api.service.EventSubscriber;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
 import org.wso2.identity.event.websubhub.publisher.internal.ClientManager;
@@ -48,7 +48,7 @@ import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterU
  * OSGi service for managing WebSub Hub subscriptions.
  * TODO: Introduce a proper exception handler for the subscriber with explicit error codes.
  */
-public class WebSubEventSubscriberImpl implements WebhookSubscriber {
+public class WebSubEventSubscriberImpl implements EventSubscriber {
 
     private static final Log log = LogFactory.getLog(WebSubEventSubscriberImpl.class);
 

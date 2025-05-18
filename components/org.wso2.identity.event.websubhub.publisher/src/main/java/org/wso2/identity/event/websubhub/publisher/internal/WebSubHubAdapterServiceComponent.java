@@ -25,7 +25,7 @@ import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
-import org.wso2.carbon.identity.webhook.management.api.service.WebhookSubscriber;
+import org.wso2.carbon.identity.webhook.management.api.service.EventSubscriber;
 import org.wso2.identity.event.common.publisher.EventPublisher;
 import org.wso2.identity.event.websubhub.publisher.config.OutboundAdapterConfigurationProvider;
 import org.wso2.identity.event.websubhub.publisher.config.WebSubAdapterConfiguration;
@@ -56,7 +56,7 @@ public class WebSubHubAdapterServiceComponent {
 
                 // Register WebhookSubscriber service
                 WebSubEventSubscriberImpl subscriberService = new WebSubEventSubscriberImpl();
-                context.getBundleContext().registerService(WebhookSubscriber.class.getName(),
+                context.getBundleContext().registerService(EventSubscriber.class.getName(),
                         subscriberService, null);
                 WebSubHubAdapterDataHolder.getInstance().setClientManager(new ClientManager());
                 WebSubHubAdapterDataHolder.getInstance().setResourceRetriever(new DefaultResourceRetriever());
