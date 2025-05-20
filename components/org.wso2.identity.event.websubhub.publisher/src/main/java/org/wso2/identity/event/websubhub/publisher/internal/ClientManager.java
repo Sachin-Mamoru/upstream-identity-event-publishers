@@ -79,7 +79,12 @@ public class ClientManager {
                     .setSSLContext(createSSLContext());
             httpAsyncClient = httpAsyncClientBuilder.build();
             httpAsyncClient.start();
-            LOG.debug("HttpAsyncClient started");
+            LOG.debug("HttpAsyncClient started with config: connectTimeout=" +
+                    config.getConnectTimeout() + ", connectionRequestTimeout=" +
+                    config.getConnectionRequestTimeout() + ", socketTimeout=" +
+                    config.getSocketTimeout() + ", maxConnections=" +
+                    asyncConnectionManager.getMaxTotal() + ", maxConnectionsPerRoute=" +
+                    asyncConnectionManager.getDefaultMaxPerRoute());
 
             // Initialize CloseableHttpClient
             PoolingHttpClientConnectionManager syncConnectionManager =
@@ -89,7 +94,12 @@ public class ClientManager {
                     .setConnectionManager(syncConnectionManager)
                     .setSSLContext(createSSLContext())
                     .build();
-            LOG.debug("CloseableHttpClient initialized with SSL and connection configurations");
+            LOG.debug("CloseableHttpClient initialized with config: connectTimeout=" +
+                    config.getConnectTimeout() + ", connectionRequestTimeout=" +
+                    config.getConnectionRequestTimeout() + ", socketTimeout=" +
+                    config.getSocketTimeout() + ", maxConnections=" +
+                    syncConnectionManager.getMaxTotal() + ", maxConnectionsPerRoute=" +
+                    syncConnectionManager.getDefaultMaxPerRoute());
         } catch (IOException e) {
             throw WebSubHubAdapterUtil.handleServerException(
                     WebSubHubAdapterConstants.ErrorMessages.ERROR_GETTING_ASYNC_CLIENT, e);

@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_REGISTERING_HUB_TOPIC;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.TOPIC_DEREGISTRATION_FAILURE_ACTIVE_SUBS;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.DEREGISTER;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.ERROR_TOPIC_DEREG_FAILURE_ACTIVE_SUBS;
@@ -56,6 +57,7 @@ import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterU
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleErrorResponse;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleFailedOperation;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleResponseCorrelationLog;
+import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleServerException;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleSuccessfulOperation;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.logDiagnosticFailure;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.logDiagnosticSuccess;
@@ -88,7 +90,7 @@ public class WebSubEventPublisherImpl implements EventPublisher {
     public void registerTopic(String eventUri, String tenantDomain) throws WebSubAdapterException {
 
         makeTopicMgtAPICall(constructHubTopic(eventUri, tenantDomain), getWebSubBaseURL(),
-                WebSubHubAdapterConstants.Http.REGISTER);
+                WebSubHubAdapterConstants.Http.REGISTER, tenantDomain);
         log.debug("WebSub Hub Topic registered successfully for the event: " + eventUri + " in tenant: " +
                 tenantDomain);
     }
@@ -103,7 +105,7 @@ public class WebSubEventPublisherImpl implements EventPublisher {
     public void deregisterTopic(String eventUri, String tenantDomain) throws WebSubAdapterException {
 
         makeTopicMgtAPICall(constructHubTopic(eventUri, tenantDomain),
-                getWebSubBaseURL(), DEREGISTER);
+                getWebSubBaseURL(), DEREGISTER, tenantDomain);
     }
 
     private void makeAsyncAPICall(SecurityEventTokenPayload eventPayload, EventContext eventContext,
@@ -131,7 +133,7 @@ public class WebSubEventPublisherImpl implements EventPublisher {
                 });
     }
 
-    private void makeTopicMgtAPICall(String topic, String webSubHubBaseUrl, String operation)
+    private void makeTopicMgtAPICall(String topic, String webSubHubBaseUrl, String operation, String tenantDomain)
             throws WebSubAdapterException {
 
         String topicMgtUrl = buildURL(topic, webSubHubBaseUrl, operation);
@@ -145,7 +147,7 @@ public class WebSubEventPublisherImpl implements EventPublisher {
         try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.execute(httpPost)) {
             handleTopicMgtResponse(response, httpPost, topic, operation, requestStartTime);
         } catch (IOException | WebSubAdapterException e) {
-            log.error("Topic management API call failed. ", e);
+            throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, e, topic, tenantDomain);
         }
     }
 

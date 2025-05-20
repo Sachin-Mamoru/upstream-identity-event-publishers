@@ -45,8 +45,9 @@ import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterU
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleSuccessfulOperation;
 
 /**
- * OSGi service for managing WebSub Hub subscriptions.
+ * OSGi service for managing WebSubHub subscriptions.
  * TODO: Introduce a proper exception handler for the subscriber with explicit error codes.
+ * TODO: Add diagnostic logs
  */
 public class WebSubEventSubscriberImpl implements EventSubscriber {
 
@@ -68,7 +69,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
                             getWebSubBaseURL(),
                             WebSubHubAdapterConstants.Http.SUBSCRIBE,
                             callbackUrl);
-                    log.debug("WebSub Hub subscription successful for topic: " + topic +
+                    log.debug("WebSubHub subscription successful for topic: " + topic +
                             " with callback URL: " + callbackUrl + " in tenant: " + tenantDomain);
                 } catch (WebSubAdapterException e) {
                     log.error("Error subscribing to topic: " + topic, e);
@@ -92,7 +93,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
                             getWebSubBaseURL(),
                             WebSubHubAdapterConstants.Http.UNSUBSCRIBE,
                             callbackUrl);
-                    log.debug("WebSub Hub unsubscription successful for topic: " + topic +
+                    log.debug("WebSubHub unsubscription successful for topic: " + topic +
                             " with callback URL: " + callbackUrl + " in tenant: " + tenantDomain);
                 } catch (WebSubAdapterException e) {
                     log.error("Error unsubscribing to topic: " + topic, e);

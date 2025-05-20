@@ -350,14 +350,15 @@ public class WebSubHubAdapterUtil {
      * @param operation Operation.
      * @throws IOException If an error occurs while reading the response.
      */
-    public static void handleErrorResponse(HttpEntity entity, String topic, String operation) throws IOException {
+    public static void handleErrorResponse(HttpEntity entity, String topic, String operation)
+            throws IOException, WebSubAdapterServerException {
 
         String responseString = "";
         if (entity != null) {
             responseString = EntityUtils.toString(entity, StandardCharsets.UTF_8);
         }
-        log.warn(String.format(ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB.getDescription(),
-                topic, operation, responseString));
+        throw handleServerException(ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB, null,
+                topic, operation, responseString);
     }
 
     /**

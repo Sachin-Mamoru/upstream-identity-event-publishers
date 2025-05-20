@@ -88,10 +88,10 @@ public class WebSubHubAdapterConstants {
                 "Event topic input cannot be null or empty."),
         ERROR_INVALID_EVENT_ORGANIZATION_NAME("60006", "Invalid organization name input",
                 "Event organization name input cannot be null or empty."),
-        ERROR_INVALID_TOPIC("60007", "Invalid WebSub hub topic input",
-                "WebSub hub topic cannot be null or empty."),
-        ERROR_INVALID_WEB_SUB_HUB_BASE_URL("60008", "Invalid WebSub hub base URL input",
-                "WebSub hub base URL cannot be null or empty."),
+        ERROR_INVALID_TOPIC("60007", "Invalid WebSubhub topic input",
+                "WebSubhub topic cannot be null or empty."),
+        ERROR_INVALID_WEB_SUB_HUB_BASE_URL("60008", "Invalid WebSubhub base URL input",
+                "WebSubhub base URL cannot be null or empty."),
         ERROR_INVALID_WEB_SUB_OPERATION("60009", "Invalid WebSub operation input",
                 "WebSub operation cannot be null or empty."),
         WEB_SUB_HUB_ADAPTER_DISABLED("60010", "WebSub Hub adapter is disabled.",
@@ -120,8 +120,8 @@ public class WebSubHubAdapterConstants {
         ERROR_CREATING_ASYNC_HTTP_CLIENT("65008", "Error while creating the Async HTTP client.",
                 "Server error encountered while creating the Async HTTP Client of WebSub Hub Adapter."),
         TOPIC_DEREGISTRATION_FAILURE_ACTIVE_SUBS("65009", "Error occurred while de-registering topic",
-                "Backend error" +
-                " received from WebSubHub while attempting to de-register topic: %s. Active subscribers: %s."),
+                "WebSubHub returned" +
+                " an error while attempting to de-register topic: %s. Active subscribers: %s."),
         ERROR_SUBSCRIBING_TO_TOPIC("65010", "Error subscribing to WebSub Hub topic.",
                 "Server error encountered while subscribing to the WebSub Hub topic: %s, tenant: %s, " +
                         "callback: %s."),
