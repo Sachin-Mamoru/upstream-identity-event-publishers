@@ -229,21 +229,14 @@ public class EventPublisherServiceTest {
     public void testEventPublisherServiceWithEmptyPublishers() {
 
         EventPublisherDataHolder.getInstance().setEventPublishers(Collections.emptyList());
-
-        // Call the service method
         eventPublisherService.publish(mockEventPayload, mockEventContext);
-
-        // Verify no interactions occurred with mock publishers
         verifyNoInteractions(mockEventPublisher1, mockEventPublisher2);
     }
 
     @Test
     public void testEventPublisherServiceWithNullPayload() {
 
-        // Call the service method with null payload
         eventPublisherService.publish(null, mockEventContext);
-
-        // Verify no interactions occurred with mock publishers
         verifyNoInteractions(mockEventPublisher1, mockEventPublisher2);
     }
 

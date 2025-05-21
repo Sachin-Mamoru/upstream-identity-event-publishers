@@ -20,7 +20,6 @@ package org.wso2.identity.event.common.publisher.model.common;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +27,6 @@ import java.util.Map;
 /**
  * Abstract Model class for Subject.
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public abstract class Subject {
 
     private String format;
