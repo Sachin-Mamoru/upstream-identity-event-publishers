@@ -23,7 +23,7 @@ import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterExcept
 import org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil;
 
 /**
- * WebSub Adapter Configuration.
+ * WebSubHub Adapter Configuration.
  */
 public class WebSubAdapterConfiguration {
 
@@ -100,9 +100,9 @@ public class WebSubAdapterConfiguration {
     }
 
     /**
-     * Returns the base URL of the WebSub Hub.
+     * Returns the base URL of the WebSubHub.
      *
-     * @return base URL of the WebSub Hub.
+     * @return base URL of the WebSubHub.
      */
     public String getWebSubHubBaseUrl() {
 

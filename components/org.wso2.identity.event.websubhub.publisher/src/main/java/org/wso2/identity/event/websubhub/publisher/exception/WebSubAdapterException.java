@@ -19,7 +19,7 @@
 package org.wso2.identity.event.websubhub.publisher.exception;
 
 /**
- * Exception wrapper class for WebSub Adapter exceptions.
+ * Exception wrapper class for WebSubHub Adapter exceptions.
  */
 public class WebSubAdapterException extends Exception {
 

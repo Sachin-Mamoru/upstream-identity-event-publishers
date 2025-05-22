@@ -77,11 +77,11 @@ public class WebSubEventPublisherImpl implements EventPublisher {
 
         makeAsyncAPICall(eventPayload, eventContext,
                 constructHubTopic(eventContext.getEventUri(), eventContext.getTenantDomain()), getWebSubBaseURL());
-        log.debug("Event published successfully to the WebSub Hub.");
+        log.debug("Event published successfully to the WebSubHub.");
     }
 
     /**
-     * Register a topic in the WebSub Hub.
+     * Register a topic in the WebSubHub.
      *
      * @param eventUri     Event URI.
      * @param tenantDomain Tenant domain.
@@ -91,12 +91,12 @@ public class WebSubEventPublisherImpl implements EventPublisher {
 
         makeTopicMgtAPICall(constructHubTopic(eventUri, tenantDomain), getWebSubBaseURL(),
                 WebSubHubAdapterConstants.Http.REGISTER, tenantDomain);
-        log.debug("WebSub Hub Topic registered successfully for the event: " + eventUri + " in tenant: " +
+        log.debug("WebSubHub Topic registered successfully for the event: " + eventUri + " in tenant: " +
                 tenantDomain);
     }
 
     /**
-     * Deregister a topic in the WebSub Hub.
+     * Deregister a topic in the WebSubHub.
      *
      * @param eventUri     Event URI.
      * @param tenantDomain Tenant domain.

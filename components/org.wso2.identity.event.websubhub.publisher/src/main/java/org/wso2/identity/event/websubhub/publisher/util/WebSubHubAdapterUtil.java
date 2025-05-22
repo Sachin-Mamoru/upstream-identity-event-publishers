@@ -239,10 +239,10 @@ public class WebSubHubAdapterUtil {
     }
 
     /**
-     * Build URL for WebSub Hub operations.
+     * Build URL for WebSubHub operations.
      *
      * @param topic            Topic.
-     * @param webSubHubBaseUrl WebSub Hub base URL.
+     * @param webSubHubBaseUrl WebSubHub base URL.
      * @param operation        Operation.
      * @return URL.
      * @throws WebSubAdapterServerException If an error occurs while building the URL.
@@ -262,10 +262,10 @@ public class WebSubHubAdapterUtil {
     }
 
     /**
-     * Build URL for WebSub Hub subscription operations.
+     * Build URL for WebSubHub subscription operations.
      *
      * @param topic            Topic.
-     * @param webSubHubBaseUrl WebSub Hub base URL.
+     * @param webSubHubBaseUrl WebSubHub base URL.
      * @param operation        Operation.
      * @param callbackUrl      Callback URL.
      * @return URL.
@@ -300,10 +300,10 @@ public class WebSubHubAdapterUtil {
     }
 
     /**
-     * Get the WebSub Hub base URL from configuration.
+     * Get the WebSubHub base URL from configuration.
      *
-     * @return WebSub Hub base URL.
-     * @throws WebSubAdapterException If the WebSub Hub base URL is not configured.
+     * @return WebSubHub base URL.
+     * @throws WebSubAdapterException If the WebSubHub base URL is not configured.
      */
     public static String getWebSubBaseURL() throws WebSubAdapterException {
 
@@ -317,7 +317,7 @@ public class WebSubHubAdapterUtil {
     }
 
     /**
-     * Handle successful WebSub Hub operations.
+     * Handle successful WebSubHub operations.
      *
      * @param entity    HTTP entity.
      * @param topic     Topic.
@@ -331,7 +331,7 @@ public class WebSubHubAdapterUtil {
         if (entity != null) {
             String responseString = EntityUtils.toString(entity, StandardCharsets.UTF_8);
             if (RESPONSE_FOR_SUCCESSFUL_OPERATION.equals(responseString)) {
-                log.debug("Success WebSub Hub operation: " + operation + ", topic: " + topic);
+                log.debug("Success WebSubHub operation: " + operation + ", topic: " + topic);
             } else {
                 throw handleServerException(ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB, null,
                         topic, operation, responseString);
@@ -343,7 +343,7 @@ public class WebSubHubAdapterUtil {
     }
 
     /**
-     * Handle error responses (e.g., conflict or not found) from WebSub Hub.
+     * Handle error responses (e.g., conflict or not found) from WebSubHub.
      *
      * @param entity    HTTP entity.
      * @param topic     Topic.
@@ -362,7 +362,7 @@ public class WebSubHubAdapterUtil {
     }
 
     /**
-     * Handle failed WebSub Hub operations.
+     * Handle failed WebSubHub operations.
      *
      * @param entity       HTTP entity.
      * @param topic        Topic.

@@ -102,31 +102,31 @@ public class WebSubHubAdapterConstants {
                 "Subscription topics cannot be null or empty."),
 
         // server errors
-        ERROR_REGISTERING_HUB_TOPIC("65001", "Error registering WebSub Hub topic.",
-                "Server error encountered while registering the WebSub Hub topic: %s, tenant: %s."),
-        ERROR_DEREGISTERING_HUB_TOPIC("65002", "Error de-registering WebSub Hub topic.",
-                "Server error encountered while de-registering the WebSub Hub topic: %s, tenant: %s."),
-        ERROR_BACKEND_ERROR_FROM_WEBSUB_HUB("65003", "Backend error from WebSub Hub topic management.",
+        ERROR_REGISTERING_HUB_TOPIC("65001", "Error registering WebSubHub topic.",
+                "Server error encountered while registering the WebSubHub topic: %s, tenant: %s."),
+        ERROR_DEREGISTERING_HUB_TOPIC("65002", "Error de-registering WebSubHub topic.",
+                "Server error encountered while de-registering the WebSubHub topic: %s, tenant: %s."),
+        ERROR_BACKEND_ERROR_FROM_WEBSUB_HUB("65003", "Backend error from WebSubHub topic management.",
                 "Backend error received from WebSubHub topic management, topic: %s, operation: %s, " +
                         "payload: %s."),
-        ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB("65004", "Error response from WebSub Hub.",
-                "Invalid response received from WebSub Hub, topic: %s, operation: %s, payload: %s."),
-        ERROR_EMPTY_RESPONSE_FROM_WEBSUB_HUB("65005", "Empty Response from WebSub Hub.",
-                "Received empty response from WebSub Hub, topic: %s, operation: %s."),
+        ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB("65004", "Error response from WebSubHub.",
+                "Invalid response received from WebSubHub, topic: %s, operation: %s, payload: %s."),
+        ERROR_EMPTY_RESPONSE_FROM_WEBSUB_HUB("65005", "Empty Response from WebSubHub.",
+                "Received empty response from WebSubHub, topic: %s, operation: %s."),
         ERROR_GETTING_ASYNC_CLIENT("65006", "Error getting the async client to publish events.",
                 "Error preparing async client to publish events, tenant: %s."),
         ERROR_CREATING_SSL_CONTEXT("65007", "Error while preparing SSL context for WebSubHub http client.",
                 "Server error encountered while preparing SSL context for WebSubHub http client."),
         ERROR_CREATING_ASYNC_HTTP_CLIENT("65008", "Error while creating the Async HTTP client.",
-                "Server error encountered while creating the Async HTTP Client of WebSub Hub Adapter."),
+                "Server error encountered while creating the Async HTTP Client of WebSubHub Adapter."),
         TOPIC_DEREGISTRATION_FAILURE_ACTIVE_SUBS("65009", "Error occurred while de-registering topic ",
                 "WebSubHub returned" +
                 " an error while attempting to de-register topic: %s. Active subscribers: %s."),
-        ERROR_SUBSCRIBING_TO_TOPIC("65010", "Error subscribing to WebSub Hub topic.",
-                "Server error encountered while subscribing to the WebSub Hub topic: %s, tenant: %s, " +
+        ERROR_SUBSCRIBING_TO_TOPIC("65010", "Error subscribing to WebSubHub topic.",
+                "Server error encountered while subscribing to the WebSubHub topic: %s, tenant: %s, " +
                         "callback: %s."),
-        ERROR_UNSUBSCRIBING_FROM_TOPIC("65011", "Error unsubscribing from WebSub Hub topic.",
-                "Server error encountered while unsubscribing from the WebSub Hub topic: %s, tenant: %s, " +
+        ERROR_UNSUBSCRIBING_FROM_TOPIC("65011", "Error unsubscribing from WebSubHub topic.",
+                "Server error encountered while unsubscribing from the WebSubHub topic: %s, tenant: %s, " +
                         "callback: %s."),
         ERROR_SUBSCRIPTION_ALREADY_EXISTS("65012", "Subscription already exists.",
                 "Subscription already exists for topic: %s and callback: %s."),
