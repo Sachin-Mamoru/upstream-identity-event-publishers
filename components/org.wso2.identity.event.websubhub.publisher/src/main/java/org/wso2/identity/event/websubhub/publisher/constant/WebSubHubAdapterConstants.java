@@ -38,7 +38,7 @@ public class WebSubHubAdapterConstants {
     }
 
     /**
-     * WebSub Hub Adapter related constants.
+     * WebSubHub Adapter related constants.
      */
     public static class Http {
 
@@ -76,8 +76,8 @@ public class WebSubHubAdapterConstants {
      */
     public enum ErrorMessages {
         // client errors
-        WEB_SUB_BASE_URL_NOT_CONFIGURED("60001", "WebSub Hub base URL is not configured.",
-                "WebSub Hub base URL is not configured."),
+        WEB_SUB_BASE_URL_NOT_CONFIGURED("60001", "WebSubHub base URL is not configured.",
+                "WebSubHub base URL is not configured."),
         ERROR_PUBLISHING_EVENT_INVALID_PAYLOAD("60002", "Invalid payload provided.",
                 "Event payload cannot be processed."),
         ERROR_NULL_EVENT_PAYLOAD("60003", "Invalid event payload input ",
@@ -88,14 +88,14 @@ public class WebSubHubAdapterConstants {
                 "Event topic input cannot be null or empty."),
         ERROR_INVALID_EVENT_ORGANIZATION_NAME("60006", "Invalid organization name input",
                 "Event organization name input cannot be null or empty."),
-        ERROR_INVALID_TOPIC("60007", "Invalid WebSubhub topic input",
-                "WebSubhub topic cannot be null or empty."),
-        ERROR_INVALID_WEB_SUB_HUB_BASE_URL("60008", "Invalid WebSubhub base URL input",
-                "WebSubhub base URL cannot be null or empty."),
-        ERROR_INVALID_WEB_SUB_OPERATION("60009", "Invalid WebSub operation input",
-                "WebSub operation cannot be null or empty."),
-        WEB_SUB_HUB_ADAPTER_DISABLED("60010", "WebSub Hub adapter is disabled.",
-                "WebSub Hub adapter is disabled."),
+        ERROR_INVALID_TOPIC("60007", "Invalid WebSubHub topic input",
+                "WebSubHub topic cannot be null or empty."),
+        ERROR_INVALID_WEB_SUB_HUB_BASE_URL("60008", "Invalid WebSubHub base URL input",
+                "WebSubHub base URL cannot be null or empty."),
+        ERROR_INVALID_WEB_SUB_OPERATION("60009", "Invalid WebSubHub operation input",
+                "WebSubHub operation cannot be null or empty."),
+        WEB_SUB_HUB_ADAPTER_DISABLED("60010", "WebSubHub adapter is disabled.",
+                "WebSubHub adapter is disabled."),
         ERROR_INVALID_CALLBACK_URL("60011", "Invalid callback URL input",
                 "Callback URL cannot be null or empty."),
         ERROR_INVALID_SUBSCRIPTION_TOPICS("60012", "Invalid subscription topics",
@@ -119,7 +119,7 @@ public class WebSubHubAdapterConstants {
                 "Server error encountered while preparing SSL context for WebSubHub http client."),
         ERROR_CREATING_ASYNC_HTTP_CLIENT("65008", "Error while creating the Async HTTP client.",
                 "Server error encountered while creating the Async HTTP Client of WebSub Hub Adapter."),
-        TOPIC_DEREGISTRATION_FAILURE_ACTIVE_SUBS("65009", "Error occurred while de-registering topic",
+        TOPIC_DEREGISTRATION_FAILURE_ACTIVE_SUBS("65009", "Error occurred while de-registering topic ",
                 "WebSubHub returned" +
                 " an error while attempting to de-register topic: %s. Active subscribers: %s."),
         ERROR_SUBSCRIBING_TO_TOPIC("65010", "Error subscribing to WebSub Hub topic.",
