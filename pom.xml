@@ -70,6 +70,11 @@
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.webhook.management</artifactId>
+                <version>${carbon.identity.framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
                 <artifactId>org.wso2.carbon.identity.application.authentication.framework</artifactId>
                 <version>${carbon.identity.framework.version}</version>
                 <exclusions>
@@ -369,7 +374,7 @@
     <properties>
         <carbon.kernel.version>4.9.10</carbon.kernel.version>
         <carbon.kernel.package.import.version.range>[4.6.0, 5.0.0)</carbon.kernel.package.import.version.range>
-        <carbon.identity.framework.version>7.8.33</carbon.identity.framework.version>
+        <carbon.identity.framework.version>7.8.164</carbon.identity.framework.version>
         <identity.outbound.adapter.version.range>[1.0.0, 2.0.0)</identity.outbound.adapter.version.range>
         <httpclient.httpcomponents.wso2.version>4.5.13.wso2v1</httpclient.httpcomponents.wso2.version>
         <httpclient.httpcomponents.wso2.version.range>[4.5.0, 5.0.0)</httpclient.httpcomponents.wso2.version.range>

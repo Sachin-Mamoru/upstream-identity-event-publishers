@@ -18,7 +18,6 @@
 
 package org.wso2.identity.event.websubhub.publisher.service;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpEntity;
@@ -27,7 +26,6 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.util.EntityUtils;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
@@ -36,47 +34,42 @@ import org.wso2.identity.event.common.publisher.model.EventContext;
 import org.wso2.identity.event.common.publisher.model.SecurityEventTokenPayload;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
-import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterServerException;
 import org.wso2.identity.event.websubhub.publisher.internal.ClientManager;
 import org.wso2.identity.event.websubhub.publisher.internal.WebSubHubAdapterDataHolder;
 import org.wso2.identity.event.websubhub.publisher.util.WebSubHubCorrelationLogUtils;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_BACKEND_ERROR_FROM_WEBSUB_HUB;
-import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_EMPTY_RESPONSE_FROM_WEBSUB_HUB;
-import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB;
-import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_INVALID_WEB_SUB_HUB_BASE_URL;
+import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_REGISTERING_HUB_TOPIC;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.TOPIC_DEREGISTRATION_FAILURE_ACTIVE_SUBS;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.DEREGISTER;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.ERROR_TOPIC_DEREG_FAILURE_ACTIVE_SUBS;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_ACTIVE_SUBS;
-import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_MODE;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_REASON;
-import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_TOPIC;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.PUBLISH;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.REGISTER;
-import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.RESPONSE_FOR_SUCCESSFUL_OPERATION;
+import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.buildURL;
+import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.constructHubTopic;
+import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.getWebSubBaseURL;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleClientException;
+import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleErrorResponse;
+import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleFailedOperation;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleResponseCorrelationLog;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleServerException;
+import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleSuccessfulOperation;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.logDiagnosticFailure;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.logDiagnosticSuccess;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.logPublishingEvent;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.parseEventHubResponse;
 
-
 /**
  * OSGi service for publishing events using web sub hub.
  */
-public class WebSubHubAdapterServiceImpl implements EventPublisher {
+public class WebSubEventPublisherImpl implements EventPublisher {
 
-    private static final Log log = LogFactory.getLog(WebSubHubAdapterServiceImpl.class);
-    private String webSubHubBaseUrl = null;
+    private static final Log log = LogFactory.getLog(WebSubEventPublisherImpl.class);
 
     @Override
     public void publish(SecurityEventTokenPayload eventPayload, EventContext eventContext)
@@ -84,11 +77,11 @@ public class WebSubHubAdapterServiceImpl implements EventPublisher {
 
         makeAsyncAPICall(eventPayload, eventContext,
                 constructHubTopic(eventContext.getEventUri(), eventContext.getTenantDomain()), getWebSubBaseURL());
-        log.debug("Event published successfully to the WebSub Hub.");
+        log.debug("Event published successfully to the WebSubHub.");
     }
 
     /**
-     * Register a topic in the WebSub Hub.
+     * Register a topic in the WebSubHub.
      *
      * @param eventUri     Event URI.
      * @param tenantDomain Tenant domain.
@@ -97,13 +90,13 @@ public class WebSubHubAdapterServiceImpl implements EventPublisher {
     public void registerTopic(String eventUri, String tenantDomain) throws WebSubAdapterException {
 
         makeTopicMgtAPICall(constructHubTopic(eventUri, tenantDomain), getWebSubBaseURL(),
-                WebSubHubAdapterConstants.Http.REGISTER);
-        log.debug("WebSub Hub Topic registered successfully for the event: " + eventUri + " in tenant: " +
+                WebSubHubAdapterConstants.Http.REGISTER, tenantDomain);
+        log.debug("WebSubHub Topic registered successfully for the event: " + eventUri + " in tenant: " +
                 tenantDomain);
     }
 
     /**
-     * Deregister a topic in the WebSub Hub.
+     * Deregister a topic in the WebSubHub.
      *
      * @param eventUri     Event URI.
      * @param tenantDomain Tenant domain.
@@ -112,32 +105,11 @@ public class WebSubHubAdapterServiceImpl implements EventPublisher {
     public void deregisterTopic(String eventUri, String tenantDomain) throws WebSubAdapterException {
 
         makeTopicMgtAPICall(constructHubTopic(eventUri, tenantDomain),
-                getWebSubBaseURL(), DEREGISTER);
-    }
-
-    private String getWebSubBaseURL() throws WebSubAdapterException {
-
-        if (StringUtils.isEmpty(webSubHubBaseUrl)) {
-            webSubHubBaseUrl =
-                    WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().getWebSubHubBaseUrl();
-
-            // At this point, url shouldn't be null since if adapter is enabled, url is mandatory to configured.
-            // But adding this as a second level verification.
-            if (StringUtils.isEmpty(webSubHubBaseUrl)) {
-                throw handleClientException
-                        (WebSubHubAdapterConstants.ErrorMessages.WEB_SUB_BASE_URL_NOT_CONFIGURED);
-            }
-        }
-        return webSubHubBaseUrl;
-    }
-
-    private String constructHubTopic(String topicSuffix, String tenantDomain) {
-
-        return tenantDomain + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + topicSuffix;
+                getWebSubBaseURL(), DEREGISTER, tenantDomain);
     }
 
     private void makeAsyncAPICall(SecurityEventTokenPayload eventPayload, EventContext eventContext,
-                                        String topic, String webSubHubBaseUrl) throws WebSubAdapterException {
+                                  String topic, String webSubHubBaseUrl) throws WebSubAdapterException {
 
         String url = buildURL(topic, webSubHubBaseUrl, PUBLISH);
 
@@ -161,21 +133,7 @@ public class WebSubHubAdapterServiceImpl implements EventPublisher {
                 });
     }
 
-    private static String buildURL(String topic, String webSubHubBaseUrl, String operation)
-            throws WebSubAdapterServerException {
-
-        try {
-            URIBuilder uriBuilder = new URIBuilder(webSubHubBaseUrl);
-            uriBuilder.addParameter(HUB_MODE, operation);
-            uriBuilder.addParameter(HUB_TOPIC, topic);
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException e) {
-            log.error("Error building URL", e);
-            throw handleServerException(ERROR_INVALID_WEB_SUB_HUB_BASE_URL, e);
-        }
-    }
-
-    private void makeTopicMgtAPICall(String topic, String webSubHubBaseUrl, String operation)
+    private void makeTopicMgtAPICall(String topic, String webSubHubBaseUrl, String operation, String tenantDomain)
             throws WebSubAdapterException {
 
         String topicMgtUrl = buildURL(topic, webSubHubBaseUrl, operation);
@@ -186,22 +144,15 @@ public class WebSubHubAdapterServiceImpl implements EventPublisher {
         WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
         final long requestStartTime = System.currentTimeMillis();
 
-        CompletableFuture<HttpResponse> future = clientManager.executeAsync(httpPost);
-
-        future.thenAccept(response -> {
-            try {
-                handleTopicMgtResponse((CloseableHttpResponse) response, httpPost, topic, operation, requestStartTime);
-            } catch (IOException | WebSubAdapterException e) {
-                log.error("Handling topic management response failed. ", e);
-            }
-        }).exceptionally(ex -> {
-            log.error("Topic management API call failed. ", ex);
-            return null;
-        });
+        try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.execute(httpPost)) {
+            handleTopicMgtResponse(response, httpPost, topic, operation, requestStartTime);
+        } catch (IOException | WebSubAdapterException e) {
+            throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, e, topic, tenantDomain);
+        }
     }
 
     private void handleTopicMgtResponse(CloseableHttpResponse response, HttpPost httpPost,
-                                               String topic, String operation, long requestStartTime)
+                                        String topic, String operation, long requestStartTime)
             throws IOException, WebSubAdapterException {
 
         StatusLine statusLine = response.getStatusLine();
@@ -213,14 +164,14 @@ public class WebSubHubAdapterServiceImpl implements EventPublisher {
             WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(httpPost, requestStartTime,
                     WebSubHubCorrelationLogUtils.RequestStatus.COMPLETED.getStatus(),
                     String.valueOf(responseCode), responsePhrase);
-            handleSuccessfulTopicMgt(entity, topic, operation);
+            handleSuccessfulOperation(entity, topic, operation);
         } else if ((responseCode == HttpStatus.SC_CONFLICT && operation.equals(REGISTER)) ||
                 (responseCode == HttpStatus.SC_NOT_FOUND && operation.equals(DEREGISTER))) {
             HttpEntity entity = response.getEntity();
             WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(httpPost, requestStartTime,
                     WebSubHubCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
                     String.valueOf(responseCode), responsePhrase);
-            handleConflictOrNotFound(entity, topic, operation);
+            handleErrorResponse(entity, topic, operation);
         } else {
             WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(httpPost, requestStartTime,
                     WebSubHubCorrelationLogUtils.RequestStatus.CANCELLED.getStatus(),
@@ -229,12 +180,12 @@ public class WebSubHubAdapterServiceImpl implements EventPublisher {
                 handleForbiddenResponse(response, topic);
             }
             HttpEntity entity = response.getEntity();
-            handleFailedTopicMgt(entity, topic, operation, responseCode);
+            handleFailedOperation(entity, topic, operation, responseCode);
         }
     }
 
     private static void handleAsyncResponse(HttpResponse response, HttpPost request, long requestStartTime,
-                                             EventContext eventContext, String url, String topic) {
+                                            EventContext eventContext, String url, String topic) {
 
         PrivilegedCarbonContext.startTenantFlow();
         PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(eventContext.getTenantDomain());
@@ -269,7 +220,7 @@ public class WebSubHubAdapterServiceImpl implements EventPublisher {
                                 errorResponseBody);
                     } else {
                         log.error("WebHubSub event publisher received " + responseCode +
-                                  " code. Response entity is null.");
+                                " code. Response entity is null.");
                     }
                 } catch (IOException e) {
                     log.error("Error while reading WebSubHub event publisher response. ", e);
@@ -278,46 +229,6 @@ public class WebSubHubAdapterServiceImpl implements EventPublisher {
         } finally {
             PrivilegedCarbonContext.endTenantFlow();
         }
-    }
-
-    private static void handleSuccessfulTopicMgt(HttpEntity entity, String topic, String operation)
-            throws WebSubAdapterException, IOException {
-
-        if (entity != null) {
-            String responseString = EntityUtils.toString(entity, StandardCharsets.UTF_8);
-            if (RESPONSE_FOR_SUCCESSFUL_OPERATION.equals(responseString)) {
-                log.debug("Success WebSub Hub operation: " + operation + ", topic: " + topic);
-            } else {
-                throw handleServerException(ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB, null,
-                        topic, operation, responseString);
-            }
-        } else {
-            String message = String.format(ERROR_EMPTY_RESPONSE_FROM_WEBSUB_HUB.getDescription(), topic, operation);
-            throw new WebSubAdapterServerException(message, ERROR_EMPTY_RESPONSE_FROM_WEBSUB_HUB.getCode());
-        }
-    }
-
-    private static void handleConflictOrNotFound(HttpEntity entity, String topic, String operation) throws IOException {
-
-        String responseString = "";
-        if (entity != null) {
-            responseString = EntityUtils.toString(entity, StandardCharsets.UTF_8);
-        }
-        log.warn(String.format(ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB.getDescription(),
-                topic, operation, responseString));
-    }
-
-    private static void handleFailedTopicMgt(HttpEntity entity, String topic, String operation, int responseCode)
-            throws IOException, WebSubAdapterException {
-
-        String responseString = "";
-        if (entity != null) {
-            responseString = EntityUtils.toString(entity, StandardCharsets.UTF_8);
-        }
-        String message = String.format(ERROR_BACKEND_ERROR_FROM_WEBSUB_HUB.getDescription(),
-                topic, operation, responseString);
-        log.error(message + ", Response code:" + responseCode);
-        throw new WebSubAdapterServerException(message, ERROR_BACKEND_ERROR_FROM_WEBSUB_HUB.getCode());
     }
 
     private static void handleForbiddenResponse(CloseableHttpResponse response, String topic) throws IOException,

@@ -27,8 +27,8 @@
     <artifactId>org.wso2.identity.event.websubhub.publisher</artifactId>
     <modelVersion>4.0.0</modelVersion>
     <packaging>bundle</packaging>
-    <name>WebSub Hub Adapter Module</name>
-    <description>Adapter to integrate with WebSub Hub</description>
+    <name>WebSubHub Adapter Module</name>
+    <description>Adapter to integrate with WebSubHub</description>
 
     <dependencies>
         <dependency>
@@ -54,6 +54,10 @@
         <dependency>
             <groupId>com.googlecode.json-simple.wso2</groupId>
             <artifactId>json-simple</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.webhook.management</artifactId>
         </dependency>
         <dependency>
             <groupId>org.wso2.identity.event.publishers</groupId>
@@ -126,6 +130,8 @@
                             org.wso2.carbon.identity.base; version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.wso2.carbon.context; version="${carbon.kernel.package.import.version.range}",
                             org.wso2.carbon.identity.core.util;
+                            version="${carbon.identity.framework.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.webhook.management.api;
                             version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.json.simple.parser; version="${com.googlecode.json-simple.wso2.version.range}",
                             org.wso2.identity.event.common.publisher;

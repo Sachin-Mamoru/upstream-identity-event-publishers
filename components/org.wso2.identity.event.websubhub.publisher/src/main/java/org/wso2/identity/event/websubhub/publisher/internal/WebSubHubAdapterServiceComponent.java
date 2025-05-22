@@ -25,10 +25,12 @@ import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
+import org.wso2.carbon.identity.webhook.management.api.service.EventSubscriber;
 import org.wso2.identity.event.common.publisher.EventPublisher;
 import org.wso2.identity.event.websubhub.publisher.config.OutboundAdapterConfigurationProvider;
 import org.wso2.identity.event.websubhub.publisher.config.WebSubAdapterConfiguration;
-import org.wso2.identity.event.websubhub.publisher.service.WebSubHubAdapterServiceImpl;
+import org.wso2.identity.event.websubhub.publisher.service.WebSubEventPublisherImpl;
+import org.wso2.identity.event.websubhub.publisher.service.WebSubEventSubscriberImpl;
 
 /**
  * WebSubHub Outbound Event Adapter service component.
@@ -47,24 +49,29 @@ public class WebSubHubAdapterServiceComponent {
             WebSubHubAdapterDataHolder.getInstance().setAdapterConfiguration(new WebSubAdapterConfiguration(
                     OutboundAdapterConfigurationProvider.getInstance()));
             if (WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().isAdapterEnabled()) {
+                // Register EventPublisher service
+                WebSubEventPublisherImpl eventPublisherService = new WebSubEventPublisherImpl();
                 context.getBundleContext().registerService(EventPublisher.class.getName(),
-                        new WebSubHubAdapterServiceImpl(), null);
+                        eventPublisherService, null);
+
+                // Register WebhookSubscriber service
+                WebSubEventSubscriberImpl subscriberService = new WebSubEventSubscriberImpl();
+                context.getBundleContext().registerService(EventSubscriber.class.getName(),
+                        subscriberService, null);
                 WebSubHubAdapterDataHolder.getInstance().setClientManager(new ClientManager());
                 WebSubHubAdapterDataHolder.getInstance().setResourceRetriever(new DefaultResourceRetriever());
-                log.debug("Successfully activated the WebSub Hub adapter service.");
+                log.debug("Successfully activated the WebSubHub adapter service.");
             } else {
-                log.error("WebSub Hub Adapter is not enabled.");
+                log.error("WebSubHub Adapter is not enabled.");
             }
         } catch (Throwable e) {
-            log.error("Can not activate the WebSub Hub adapter service: " + e.getMessage(), e);
+            log.error("Can not activate the WebSubHub adapter service: " + e.getMessage(), e);
         }
     }
 
     @Deactivate
     protected void deactivate(ComponentContext context) {
 
-        log.debug("Successfully de-activated the WebSub Hub adapter service.");
+        log.debug("Successfully de-activated the WebSubHub adapter service.");
     }
 }
-
-
