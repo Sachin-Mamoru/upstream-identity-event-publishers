@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package org.wso2.identity.event.websubhub.publisher.service;
+package org.wso2.identity.event.websubhub.publisher.service.impl;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

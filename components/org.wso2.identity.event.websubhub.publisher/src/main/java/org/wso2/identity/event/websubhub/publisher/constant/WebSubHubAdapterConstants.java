@@ -100,6 +100,10 @@ public class WebSubHubAdapterConstants {
                 "Callback URL cannot be null or empty."),
         ERROR_INVALID_SUBSCRIPTION_TOPICS("60012", "Invalid subscription topics",
                 "Subscription topics cannot be null or empty."),
+        ERROR_INVALID_TOPIC_URIS("60013", "Invalid topic URIs list",
+                "Topic URIs list cannot be null or empty."),
+        ERROR_INVALID_TENANT_DOMAIN("60014", "Invalid tenant domain",
+                "Tenant domain cannot be null or empty."),
 
         // server errors
         ERROR_REGISTERING_HUB_TOPIC("65001", "Error registering WebSubHub topic.",
@@ -131,7 +135,11 @@ public class WebSubHubAdapterConstants {
         ERROR_SUBSCRIPTION_ALREADY_EXISTS("65012", "Subscription already exists.",
                 "Subscription already exists for topic: %s and callback: %s."),
         ERROR_SUBSCRIPTION_NOT_FOUND("65013", "Subscription not found.",
-                "No subscription found for topic: %s and callback: %s.");
+                "No subscription found for topic: %s and callback: %s."),
+        ERROR_TOPIC_PERSISTENCE("65014", "Error persisting topic.",
+                "Server error encountered while persisting topic: %s, tenant: %s."),
+        ERROR_TOPIC_RETRIEVAL("65015", "Error retrieving topic.",
+                "Server error encountered while retrieving topic: %s, tenant: %s.");
 
         private static final String WEB_SUB_ADAPTER_ERROR_CODE_PREFIX = "WEBSUB-";
         private final String code;

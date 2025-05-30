@@ -31,6 +31,7 @@ import org.wso2.identity.event.websubhub.publisher.config.WebSubAdapterConfigura
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
 import org.wso2.identity.event.websubhub.publisher.internal.ClientManager;
 import org.wso2.identity.event.websubhub.publisher.internal.WebSubHubAdapterDataHolder;
+import org.wso2.identity.event.websubhub.publisher.service.impl.WebSubEventPublisherImpl;
 
 import java.util.concurrent.CompletableFuture;
 

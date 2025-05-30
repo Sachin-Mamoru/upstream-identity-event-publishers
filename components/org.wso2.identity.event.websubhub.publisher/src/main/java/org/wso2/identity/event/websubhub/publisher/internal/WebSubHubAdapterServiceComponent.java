@@ -29,8 +29,10 @@ import org.wso2.carbon.identity.webhook.management.api.service.EventSubscriber;
 import org.wso2.identity.event.common.publisher.EventPublisher;
 import org.wso2.identity.event.websubhub.publisher.config.OutboundAdapterConfigurationProvider;
 import org.wso2.identity.event.websubhub.publisher.config.WebSubAdapterConfiguration;
-import org.wso2.identity.event.websubhub.publisher.service.WebSubEventPublisherImpl;
-import org.wso2.identity.event.websubhub.publisher.service.WebSubEventSubscriberImpl;
+import org.wso2.identity.event.websubhub.publisher.service.TopicManagementService;
+import org.wso2.identity.event.websubhub.publisher.service.impl.WebSubEventPublisherImpl;
+import org.wso2.identity.event.websubhub.publisher.service.impl.WebSubEventSubscriberImpl;
+import org.wso2.identity.event.websubhub.publisher.service.impl.TopicManagementServiceImpl;
 
 /**
  * WebSubHub Outbound Event Adapter service component.
@@ -49,15 +51,21 @@ public class WebSubHubAdapterServiceComponent {
             WebSubHubAdapterDataHolder.getInstance().setAdapterConfiguration(new WebSubAdapterConfiguration(
                     OutboundAdapterConfigurationProvider.getInstance()));
             if (WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().isAdapterEnabled()) {
-                // Register EventPublisher service
+                // Register EventPublisher Service
                 WebSubEventPublisherImpl eventPublisherService = new WebSubEventPublisherImpl();
                 context.getBundleContext().registerService(EventPublisher.class.getName(),
                         eventPublisherService, null);
 
-                // Register WebhookSubscriber service
+                // Register WebhookSubscriber Service
                 WebSubEventSubscriberImpl subscriberService = new WebSubEventSubscriberImpl();
                 context.getBundleContext().registerService(EventSubscriber.class.getName(),
                         subscriberService, null);
+
+                // Register Topic Manager Service
+                TopicManagementServiceImpl topicManagementService = new TopicManagementServiceImpl();
+                context.getBundleContext().registerService(TopicManagementService.class.getName(),
+                        topicManagementService, null);
+
                 WebSubHubAdapterDataHolder.getInstance().setClientManager(new ClientManager());
                 WebSubHubAdapterDataHolder.getInstance().setResourceRetriever(new DefaultResourceRetriever());
                 log.debug("Successfully activated the WebSubHub adapter service.");

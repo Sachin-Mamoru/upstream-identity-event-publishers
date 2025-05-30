@@ -30,6 +30,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.wso2.identity.event.websubhub.publisher.internal.ClientManager;
 import org.wso2.identity.event.websubhub.publisher.internal.WebSubHubAdapterDataHolder;
+import org.wso2.identity.event.websubhub.publisher.service.impl.WebSubEventSubscriberImpl;
 import org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil;
 
 import java.util.Arrays;
