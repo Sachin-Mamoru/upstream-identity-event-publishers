@@ -23,8 +23,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.message.BasicNameValuePair;
 import org.wso2.carbon.identity.webhook.management.api.service.EventSubscriber;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
@@ -33,11 +35,14 @@ import org.wso2.identity.event.websubhub.publisher.internal.WebSubHubAdapterData
 import org.wso2.identity.event.websubhub.publisher.util.WebSubHubCorrelationLogUtils;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_SUBSCRIBING_TO_TOPIC;
-import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.buildSubscriptionURL;
-import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.constructHubTopic;
+import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_CALLBACK;
+import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_MODE;
+import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_TOPIC;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.getWebSubBaseURL;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleErrorResponse;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleFailedOperation;
@@ -65,7 +70,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
         try {
             for (String topic : topics) {
                 try {
-                    makeSubscriptionAPICall(constructHubTopic(topic, tenantDomain),
+                    makeSubscriptionAPICall(topic,
                             getWebSubBaseURL(),
                             WebSubHubAdapterConstants.Http.SUBSCRIBE,
                             callbackUrl);
@@ -89,7 +94,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
         try {
             for (String topic : topics) {
                 try {
-                    makeSubscriptionAPICall(constructHubTopic(topic, tenantDomain),
+                    makeSubscriptionAPICall(topic,
                             getWebSubBaseURL(),
                             WebSubHubAdapterConstants.Http.UNSUBSCRIBE,
                             callbackUrl);
@@ -110,10 +115,17 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
     private void makeSubscriptionAPICall(String topic, String webSubHubBaseUrl, String operation, String callbackUrl)
             throws WebSubAdapterException {
 
-        String subscriptionUrl = buildSubscriptionURL(topic, webSubHubBaseUrl, operation, callbackUrl);
-
         ClientManager clientManager = WebSubHubAdapterDataHolder.getInstance().getClientManager();
-        HttpPost httpPost = clientManager.createHttpPost(subscriptionUrl, null);
+        HttpPost httpPost = clientManager.createHttpPost(webSubHubBaseUrl, null);
+
+        httpPost.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+
+        List<BasicNameValuePair> params = new ArrayList<>();
+        params.add(new BasicNameValuePair(HUB_CALLBACK, callbackUrl));
+        params.add(new BasicNameValuePair(HUB_MODE, operation));
+        params.add(new BasicNameValuePair(HUB_TOPIC, topic));
+
+        httpPost.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
 
         WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
         final long requestStartTime = System.currentTimeMillis();

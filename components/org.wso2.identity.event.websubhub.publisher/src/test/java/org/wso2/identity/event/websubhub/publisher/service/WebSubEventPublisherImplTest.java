@@ -25,6 +25,7 @@ import org.mockito.MockitoAnnotations;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
+import org.wso2.carbon.identity.topic.management.api.exception.TopicManagementException;
 import org.wso2.identity.event.common.publisher.model.EventContext;
 import org.wso2.identity.event.common.publisher.model.SecurityEventTokenPayload;
 import org.wso2.identity.event.websubhub.publisher.config.WebSubAdapterConfiguration;
@@ -50,6 +51,7 @@ import static org.mockito.Mockito.when;
 public class WebSubEventPublisherImplTest {
 
     private WebSubEventPublisherImpl adapterService;
+    private WebSubTopicManagerImpl webSubTopicManager;
 
     @Mock
     private ClientManager mockClientManager;
@@ -67,6 +69,7 @@ public class WebSubEventPublisherImplTest {
 
         MockitoAnnotations.openMocks(this);
         adapterService = spy(new WebSubEventPublisherImpl());
+        webSubTopicManager = spy(new WebSubTopicManagerImpl());
 
         MockedStatic<WebSubHubAdapterDataHolder> mockedStaticDataHolder = mockStatic(WebSubHubAdapterDataHolder.class);
         WebSubHubAdapterDataHolder mockDataHolder = mock(WebSubHubAdapterDataHolder.class);
@@ -108,42 +111,42 @@ public class WebSubEventPublisherImplTest {
     }
 
     @Test
-    public void testRegisterTopic() throws WebSubAdapterException {
+    public void testRegisterTopic() throws TopicManagementException {
 
-        doNothing().when(adapterService).registerTopic("test-uri", "test-tenant");
+        doNothing().when(webSubTopicManager).registerTopic("test-uri", "test-tenant");
 
-        adapterService.registerTopic("test-uri", "test-tenant");
+        webSubTopicManager.registerTopic("test-uri", "test-tenant");
 
-        verify(adapterService, times(1)).registerTopic("test-uri",
+        verify(webSubTopicManager, times(1)).registerTopic("test-uri",
                 "test-tenant");
     }
 
-    @Test(expectedExceptions = WebSubAdapterException.class)
-    public void testRegisterTopicFailure() throws WebSubAdapterException {
+    @Test(expectedExceptions = TopicManagementException.class)
+    public void testRegisterTopicFailure() throws TopicManagementException {
 
-        doThrow(new WebSubAdapterException("Registration failed", "Description", "ErrorCode"))
-                .when(adapterService).registerTopic("test-uri", "test-tenant");
+        doThrow(new TopicManagementException("Registration failed", "Description", "ErrorCode"))
+                .when(webSubTopicManager).registerTopic("test-uri", "test-tenant");
 
-        adapterService.registerTopic("test-uri", "test-tenant");
+        webSubTopicManager.registerTopic("test-uri", "test-tenant");
     }
 
     @Test
-    public void testDeregisterTopic() throws WebSubAdapterException {
+    public void testDeregisterTopic() throws TopicManagementException {
 
-        doNothing().when(adapterService).deregisterTopic("test-uri", "test-tenant");
+        doNothing().when(webSubTopicManager).deregisterTopic("test-uri", "test-tenant");
 
-        adapterService.deregisterTopic("test-uri", "test-tenant");
+        webSubTopicManager.deregisterTopic("test-uri", "test-tenant");
 
-        verify(adapterService, times(1)).deregisterTopic("test-uri",
+        verify(webSubTopicManager, times(1)).deregisterTopic("test-uri",
                 "test-tenant");
     }
 
-    @Test(expectedExceptions = WebSubAdapterException.class)
-    public void testDeregisterTopicFailure() throws WebSubAdapterException {
+    @Test(expectedExceptions = TopicManagementException.class)
+    public void testDeregisterTopicFailure() throws TopicManagementException {
 
-        doThrow(new WebSubAdapterException("Deregistration failed", "Description", "ErrorCode"))
-                .when(adapterService).deregisterTopic("test-uri", "test-tenant");
+        doThrow(new TopicManagementException("Deregistration failed", "Description", "ErrorCode"))
+                .when(webSubTopicManager).deregisterTopic("test-uri", "test-tenant");
 
-        adapterService.deregisterTopic("test-uri", "test-tenant");
+        webSubTopicManager.deregisterTopic("test-uri", "test-tenant");
     }
 }

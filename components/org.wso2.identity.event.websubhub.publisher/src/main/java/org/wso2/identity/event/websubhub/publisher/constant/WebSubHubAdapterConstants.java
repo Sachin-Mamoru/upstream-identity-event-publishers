@@ -42,7 +42,8 @@ public class WebSubHubAdapterConstants {
      */
     public static class Http {
 
-        public static final String TOPIC_SEPARATOR = "-";
+        public static final String TOPIC_SEPARATOR = ".";
+        public static final String REGEX_HTTP_OR_HTTPS_PREFIX = "^https?://";
         public static final String URL_PARAM_SEPARATOR = "&";
         public static final String URL_KEY_VALUE_SEPARATOR = "=";
         public static final String PUBLISH = "publish";
