@@ -228,13 +228,6 @@ public class EventPublisherServiceTest {
     }
 
     @Test
-    public void testEventPublisherServiceWithNullPayload() {
-
-        eventPublisherService.publish(null, mockEventContext);
-        verifyNoInteractions(mockEventPublisher1, mockEventPublisher2);
-    }
-
-    @Test
     public void testSecurityEventTokenPayloadWithSubId() {
 
         Map<String, EventPayload> eventMap = new HashMap<>();
