@@ -21,7 +21,6 @@ package org.wso2.identity.event.websubhub.publisher.service;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
@@ -54,9 +53,6 @@ public class WebSubEventSubscriberImplTest {
 
     @Mock
     private ClientManager mockClientManager;
-
-    @Mock
-    private CloseableHttpClient mockHttpClient;
 
     @Mock
     private CloseableHttpResponse mockHttpResponse;

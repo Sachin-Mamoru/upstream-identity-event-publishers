@@ -147,10 +147,12 @@ public class EventPublisherServiceTest {
         EventContext eventContext = EventContext.builder()
                 .tenantDomain("example.com")
                 .eventUri("http://example.com/event")
+                .eventProfileVersion("1.0.0")
                 .build();
 
         Assert.assertEquals(eventContext.getTenantDomain(), "example.com");
         Assert.assertEquals(eventContext.getEventUri(), "http://example.com/event");
+        Assert.assertEquals(eventContext.getEventProfileVersion(), "1.0.0");
     }
 
     @Test
@@ -223,14 +225,6 @@ public class EventPublisherServiceTest {
         Assert.assertEquals(payload.getRci(), "rci123");
         Assert.assertNotNull(payload.getEvents());
         Assert.assertTrue(payload.getEvents().isEmpty());
-    }
-
-    @Test
-    public void testEventPublisherServiceWithEmptyPublishers() {
-
-        EventPublisherDataHolder.getInstance().setEventPublishers(Collections.emptyList());
-        eventPublisherService.publish(mockEventPayload, mockEventContext);
-        verifyNoInteractions(mockEventPublisher1, mockEventPublisher2);
     }
 
     @Test

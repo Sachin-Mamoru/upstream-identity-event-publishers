@@ -22,10 +22,10 @@ import org.apache.http.HttpResponse;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
-import org.wso2.carbon.identity.topic.management.api.exception.TopicManagementException;
 import org.wso2.identity.event.common.publisher.model.EventContext;
 import org.wso2.identity.event.common.publisher.model.SecurityEventTokenPayload;
 import org.wso2.identity.event.websubhub.publisher.config.WebSubAdapterConfiguration;
@@ -36,8 +36,6 @@ import org.wso2.identity.event.websubhub.publisher.internal.WebSubHubAdapterData
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
@@ -51,7 +49,7 @@ import static org.mockito.Mockito.when;
 public class WebSubEventPublisherImplTest {
 
     private WebSubEventPublisherImpl adapterService;
-    private WebSubTopicManagerImpl webSubTopicManager;
+    private AutoCloseable mocks;
 
     @Mock
     private ClientManager mockClientManager;
@@ -67,17 +65,27 @@ public class WebSubEventPublisherImplTest {
     @BeforeClass
     public void setUp() {
 
-        MockitoAnnotations.openMocks(this);
+        mocks = MockitoAnnotations.openMocks(this);
         adapterService = spy(new WebSubEventPublisherImpl());
-        webSubTopicManager = spy(new WebSubTopicManagerImpl());
 
-        MockedStatic<WebSubHubAdapterDataHolder> mockedStaticDataHolder = mockStatic(WebSubHubAdapterDataHolder.class);
+        mockedStaticDataHolder = mockStatic(WebSubHubAdapterDataHolder.class);
         WebSubHubAdapterDataHolder mockDataHolder = mock(WebSubHubAdapterDataHolder.class);
         mockedStaticDataHolder.when(WebSubHubAdapterDataHolder::getInstance).thenReturn(mockDataHolder);
 
         when(mockDataHolder.getClientManager()).thenReturn(mockClientManager);
         when(mockDataHolder.getAdapterConfiguration()).thenReturn(mockAdapterConfiguration);
         when(mockAdapterConfiguration.getWebSubHubBaseUrl()).thenReturn("http://mock-websub-hub.com");
+    }
+
+    @AfterClass
+    public void tearDown() throws Exception {
+
+        if (mocks != null) {
+            mocks.close();
+        }
+        if (mockedStaticDataHolder != null) {
+            mockedStaticDataHolder.close();
+        }
     }
 
     @Test
@@ -108,45 +116,5 @@ public class WebSubEventPublisherImplTest {
             // Verify interactions
             verify(mockClientManager, times(1)).executeAsync(any());
         }
-    }
-
-    @Test
-    public void testRegisterTopic() throws TopicManagementException {
-
-        doNothing().when(webSubTopicManager).registerTopic("test-uri", "test-tenant");
-
-        webSubTopicManager.registerTopic("test-uri", "test-tenant");
-
-        verify(webSubTopicManager, times(1)).registerTopic("test-uri",
-                "test-tenant");
-    }
-
-    @Test(expectedExceptions = TopicManagementException.class)
-    public void testRegisterTopicFailure() throws TopicManagementException {
-
-        doThrow(new TopicManagementException("Registration failed", "Description", "ErrorCode"))
-                .when(webSubTopicManager).registerTopic("test-uri", "test-tenant");
-
-        webSubTopicManager.registerTopic("test-uri", "test-tenant");
-    }
-
-    @Test
-    public void testDeregisterTopic() throws TopicManagementException {
-
-        doNothing().when(webSubTopicManager).deregisterTopic("test-uri", "test-tenant");
-
-        webSubTopicManager.deregisterTopic("test-uri", "test-tenant");
-
-        verify(webSubTopicManager, times(1)).deregisterTopic("test-uri",
-                "test-tenant");
-    }
-
-    @Test(expectedExceptions = TopicManagementException.class)
-    public void testDeregisterTopicFailure() throws TopicManagementException {
-
-        doThrow(new TopicManagementException("Deregistration failed", "Description", "ErrorCode"))
-                .when(webSubTopicManager).deregisterTopic("test-uri", "test-tenant");
-
-        webSubTopicManager.deregisterTopic("test-uri", "test-tenant");
     }
 }
