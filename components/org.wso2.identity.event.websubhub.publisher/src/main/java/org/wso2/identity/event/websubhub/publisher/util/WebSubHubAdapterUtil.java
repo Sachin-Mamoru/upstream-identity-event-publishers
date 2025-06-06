@@ -29,6 +29,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.MDC;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
+import org.wso2.carbon.identity.topic.management.api.exception.TopicManagementException;
 import org.wso2.carbon.utils.DiagnosticLog;
 import org.wso2.identity.event.common.publisher.model.EventContext;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
@@ -50,9 +51,9 @@ import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdap
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_INVALID_WEB_SUB_HUB_BASE_URL;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.CORRELATION_ID_REQUEST_HEADER;
-import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_CALLBACK;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_MODE;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_TOPIC;
+import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.REGEX_HTTP_OR_HTTPS_PREFIX;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.RESPONSE_FOR_SUCCESSFUL_OPERATION;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.URL_KEY_VALUE_SEPARATOR;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.URL_PARAM_SEPARATOR;
@@ -116,6 +117,23 @@ public class WebSubHubAdapterUtil {
             description = String.format(description, data);
         }
         return new WebSubAdapterServerException(error.getMessage(), description, error.getCode(), throwable);
+    }
+
+    /**
+     * Handle topic management exceptions without a throwable.
+     *
+     * @param error Error message.
+     * @param data  Data.
+     * @return TopicManagementException.
+     */
+    public static TopicManagementException handleTopicMgtException(
+            WebSubHubAdapterConstants.ErrorMessages error, Throwable throwable, String... data) {
+
+        String description = error.getDescription();
+        if (ArrayUtils.isNotEmpty(data)) {
+            description = String.format(description, data);
+        }
+        return new TopicManagementException(error.getMessage(), description, error.getCode(), throwable);
     }
 
     /**
@@ -262,41 +280,19 @@ public class WebSubHubAdapterUtil {
     }
 
     /**
-     * Build URL for WebSubHub subscription operations.
+     * Construct the hub topic by combining tenant domain, version and topic suffix.
      *
-     * @param topic            Topic.
-     * @param webSubHubBaseUrl WebSubHub base URL.
-     * @param operation        Operation.
-     * @param callbackUrl      Callback URL.
-     * @return URL.
-     * @throws WebSubAdapterServerException If an error occurs while building the URL.
-     */
-    public static String buildSubscriptionURL(String topic, String webSubHubBaseUrl, String operation,
-                                              String callbackUrl)
-            throws WebSubAdapterServerException {
-
-        try {
-            URIBuilder uriBuilder = new URIBuilder(webSubHubBaseUrl);
-            uriBuilder.addParameter(HUB_MODE, operation);
-            uriBuilder.addParameter(HUB_TOPIC, topic);
-            uriBuilder.addParameter(HUB_CALLBACK, callbackUrl);
-            return uriBuilder.build().toString();
-        } catch (URISyntaxException e) {
-            log.error("Error building subscription URL", e);
-            throw handleServerException(ERROR_INVALID_WEB_SUB_HUB_BASE_URL, e);
-        }
-    }
-
-    /**
-     * Construct the hub topic by combining tenant domain and topic suffix.
-     *
-     * @param topicSuffix  Topic suffix.
-     * @param tenantDomain Tenant domain.
+     * @param channelUri          Channel URI.
+     * @param eventProfileVersion Event profile version.
+     * @param tenantDomain        Tenant domain.
      * @return Hub topic.
      */
-    public static String constructHubTopic(String topicSuffix, String tenantDomain) {
+    public static String constructHubTopic(String channelUri, String eventProfileVersion, String tenantDomain) {
 
-        return tenantDomain + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + topicSuffix;
+        // Remove protocol (http:// or https://) safely using regex
+        String cleanedChannelUri = channelUri.replaceFirst(REGEX_HTTP_OR_HTTPS_PREFIX, "");
+        return tenantDomain + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + eventProfileVersion +
+                WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + cleanedChannelUri;
     }
 
     /**

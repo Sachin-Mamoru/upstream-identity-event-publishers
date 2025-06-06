@@ -22,6 +22,7 @@ import org.apache.http.HttpResponse;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
@@ -35,8 +36,6 @@ import org.wso2.identity.event.websubhub.publisher.internal.WebSubHubAdapterData
 import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
@@ -50,6 +49,7 @@ import static org.mockito.Mockito.when;
 public class WebSubEventPublisherImplTest {
 
     private WebSubEventPublisherImpl adapterService;
+    private AutoCloseable mocks;
 
     @Mock
     private ClientManager mockClientManager;
@@ -65,16 +65,27 @@ public class WebSubEventPublisherImplTest {
     @BeforeClass
     public void setUp() {
 
-        MockitoAnnotations.openMocks(this);
+        mocks = MockitoAnnotations.openMocks(this);
         adapterService = spy(new WebSubEventPublisherImpl());
 
-        MockedStatic<WebSubHubAdapterDataHolder> mockedStaticDataHolder = mockStatic(WebSubHubAdapterDataHolder.class);
+        mockedStaticDataHolder = mockStatic(WebSubHubAdapterDataHolder.class);
         WebSubHubAdapterDataHolder mockDataHolder = mock(WebSubHubAdapterDataHolder.class);
         mockedStaticDataHolder.when(WebSubHubAdapterDataHolder::getInstance).thenReturn(mockDataHolder);
 
         when(mockDataHolder.getClientManager()).thenReturn(mockClientManager);
         when(mockDataHolder.getAdapterConfiguration()).thenReturn(mockAdapterConfiguration);
         when(mockAdapterConfiguration.getWebSubHubBaseUrl()).thenReturn("http://mock-websub-hub.com");
+    }
+
+    @AfterClass
+    public void tearDown() throws Exception {
+
+        if (mocks != null) {
+            mocks.close();
+        }
+        if (mockedStaticDataHolder != null) {
+            mockedStaticDataHolder.close();
+        }
     }
 
     @Test
@@ -105,45 +116,5 @@ public class WebSubEventPublisherImplTest {
             // Verify interactions
             verify(mockClientManager, times(1)).executeAsync(any());
         }
-    }
-
-    @Test
-    public void testRegisterTopic() throws WebSubAdapterException {
-
-        doNothing().when(adapterService).registerTopic("test-uri", "test-tenant");
-
-        adapterService.registerTopic("test-uri", "test-tenant");
-
-        verify(adapterService, times(1)).registerTopic("test-uri",
-                "test-tenant");
-    }
-
-    @Test(expectedExceptions = WebSubAdapterException.class)
-    public void testRegisterTopicFailure() throws WebSubAdapterException {
-
-        doThrow(new WebSubAdapterException("Registration failed", "Description", "ErrorCode"))
-                .when(adapterService).registerTopic("test-uri", "test-tenant");
-
-        adapterService.registerTopic("test-uri", "test-tenant");
-    }
-
-    @Test
-    public void testDeregisterTopic() throws WebSubAdapterException {
-
-        doNothing().when(adapterService).deregisterTopic("test-uri", "test-tenant");
-
-        adapterService.deregisterTopic("test-uri", "test-tenant");
-
-        verify(adapterService, times(1)).deregisterTopic("test-uri",
-                "test-tenant");
-    }
-
-    @Test(expectedExceptions = WebSubAdapterException.class)
-    public void testDeregisterTopicFailure() throws WebSubAdapterException {
-
-        doThrow(new WebSubAdapterException("Deregistration failed", "Description", "ErrorCode"))
-                .when(adapterService).deregisterTopic("test-uri", "test-tenant");
-
-        adapterService.deregisterTopic("test-uri", "test-tenant");
     }
 }

@@ -25,11 +25,13 @@ public class EventContext {
 
     private final String tenantDomain;
     private final String eventUri;
+    private final String eventProfileVersion;
 
     private EventContext(Builder builder) {
 
         this.tenantDomain = builder.tenantDomain;
         this.eventUri = builder.eventUri;
+        this.eventProfileVersion = builder.eventProfileVersion;
     }
 
     public String getTenantDomain() {
@@ -40,6 +42,11 @@ public class EventContext {
     public String getEventUri() {
 
         return eventUri;
+    }
+
+    public String getEventProfileVersion() {
+
+        return eventProfileVersion;
     }
 
     public static Builder builder() {
@@ -54,8 +61,11 @@ public class EventContext {
 
         private String tenantDomain;
         private String eventUri;
+        private String eventProfileVersion;
 
-        public Builder() {}
+        public Builder() {
+
+        }
 
         public Builder tenantDomain(String tenantDomain) {
 
@@ -66,6 +76,12 @@ public class EventContext {
         public Builder eventUri(String eventUri) {
 
             this.eventUri = eventUri;
+            return this;
+        }
+
+        public Builder eventProfileVersion(String eventProfileVersion) {
+
+            this.eventProfileVersion = eventProfileVersion;
             return this;
         }
 

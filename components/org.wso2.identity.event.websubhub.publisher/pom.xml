@@ -60,6 +60,10 @@
             <artifactId>org.wso2.carbon.identity.webhook.management</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.topic.management</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.wso2.identity.event.publishers</groupId>
             <artifactId>org.wso2.identity.event.common.publisher</artifactId>
         </dependency>
@@ -113,6 +117,7 @@
                             org.apache.http.impl.nio.conn; version="${httpasyncclient.version.range}",
                             org.apache.http.impl.nio.reactor; version="${httpasyncclient.version.range}",
                             org.apache.http.impl.nio.client; version="${httpasyncclient.version.range}",
+                            org.apache.http.impl.conn; version="${httpasyncclient.version.range}",
                             org.apache.http.impl.client; version="${httpasyncclient.version.range}",
                             org.apache.http.nio.conn; version="${httpasyncclient.version.range}",
                             org.apache.http.nio.reactor; version="${httpasyncclient.version.range}",
@@ -120,9 +125,12 @@
                             org.apache.http.client.methods; version="${httpasyncclient.version.range}",
                             org.apache.http.entity; version="${httpasyncclient.version.range}",
                             org.apache.http.client.config; version="${httpasyncclient.version.range}",
+                            org.apache.http.client.entity; version="${httpasyncclient.version.range}",
+                            org.apache.http.conn; version="${httpasyncclient.version.range}",
                             org.apache.http.conn.ssl; version="${httpasyncclient.version.range}",
                             org.apache.http.util; version="${httpasyncclient.version.range}",
                             org.apache.http.ssl; version="${httpasyncclient.version.range}",
+                            org.apache.http.message; version="${httpasyncclient.version.range}",
                             org.osgi.framework; version="${osgi.framework.imp.pkg.version.range}",
                             org.osgi.service.component; version="${osgi.service.component.imp.pkg.version.range}",
                             org.wso2.carbon.identity.application.authentication.framework.exception;
@@ -131,7 +139,9 @@
                             org.wso2.carbon.context; version="${carbon.kernel.package.import.version.range}",
                             org.wso2.carbon.identity.core.util;
                             version="${carbon.identity.framework.imp.pkg.version.range}",
-                            org.wso2.carbon.identity.webhook.management.api;
+                            org.wso2.carbon.identity.webhook.management.api.*;
+                            version="${carbon.identity.framework.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.topic.management.api.*;
                             version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.json.simple.parser; version="${com.googlecode.json-simple.wso2.version.range}",
                             org.wso2.identity.event.common.publisher;
