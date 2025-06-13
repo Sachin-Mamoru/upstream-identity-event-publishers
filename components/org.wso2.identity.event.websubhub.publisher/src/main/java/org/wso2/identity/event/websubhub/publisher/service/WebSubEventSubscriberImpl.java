@@ -27,6 +27,7 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
+import org.wso2.carbon.identity.webhook.management.api.exception.WebhookMgtException;
 import org.wso2.carbon.identity.webhook.management.api.service.EventSubscriber;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
@@ -42,7 +43,9 @@ import java.util.List;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_SUBSCRIBING_TO_TOPIC;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_CALLBACK;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_MODE;
+import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_SECRET;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_TOPIC;
+import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.constructHubTopic;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.getWebSubBaseURL;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleErrorResponse;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleFailedOperation;
@@ -65,54 +68,39 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
     }
 
     @Override
-    public boolean subscribe(List<String> topics, String callbackUrl, String tenantDomain) {
+    public void subscribe(List<String> channels, String eventProfileVersion, String endpoint, String secret,
+                          String tenantDomain) throws WebhookMgtException {
 
-        try {
-            for (String topic : topics) {
-                try {
-                    makeSubscriptionAPICall(topic,
-                            getWebSubBaseURL(),
-                            WebSubHubAdapterConstants.Http.SUBSCRIBE,
-                            callbackUrl);
-                    log.debug("WebSubHub subscription successful for topic: " + topic +
-                            " with callback URL: " + callbackUrl + " in tenant: " + tenantDomain);
-                } catch (WebSubAdapterException e) {
-                    log.error("Error subscribing to topic: " + topic, e);
-                    return false;
-                }
+        for (String channel : channels) {
+            try {
+                makeSubscriptionAPICall(constructHubTopic(channel, eventProfileVersion, tenantDomain),
+                        getWebSubBaseURL(), WebSubHubAdapterConstants.Http.SUBSCRIBE, endpoint, secret);
+                log.debug("WebSubHub subscription successful for channel: " + channel +
+                        " with endpoint: " + endpoint + " in tenant: " + tenantDomain);
+            } catch (WebSubAdapterException e) {
+                throw new WebhookMgtException(e.getMessage(), e);
             }
-            return true;
-        } catch (Exception e) {
-            log.error("Unexpected error during subscription process", e);
-            return false;
         }
     }
 
     @Override
-    public boolean unsubscribe(List<String> topics, String callbackUrl, String tenantDomain) {
+    public void unsubscribe(List<String> channels, String eventProfileVersion, String endpoint,
+                            String tenantDomain) throws WebhookMgtException {
 
-        try {
-            for (String topic : topics) {
-                try {
-                    makeSubscriptionAPICall(topic,
-                            getWebSubBaseURL(),
-                            WebSubHubAdapterConstants.Http.UNSUBSCRIBE,
-                            callbackUrl);
-                    log.debug("WebSubHub unsubscription successful for topic: " + topic +
-                            " with callback URL: " + callbackUrl + " in tenant: " + tenantDomain);
-                } catch (WebSubAdapterException e) {
-                    log.error("Error unsubscribing to topic: " + topic, e);
-                    return false;
-                }
+        for (String channel : channels) {
+            try {
+                makeSubscriptionAPICall(constructHubTopic(channel, eventProfileVersion, tenantDomain),
+                        getWebSubBaseURL(), WebSubHubAdapterConstants.Http.UNSUBSCRIBE, endpoint, null);
+                log.debug("WebSubHub unsubscription successful for channel: " + channel +
+                        " with endpoint: " + endpoint + " in tenant: " + tenantDomain);
+            } catch (WebSubAdapterException e) {
+                throw new WebhookMgtException(e.getMessage(), e);
             }
-            return true;
-        } catch (Exception e) {
-            log.error("Unexpected error during unsubscription process", e);
-            return false;
         }
     }
 
-    private void makeSubscriptionAPICall(String topic, String webSubHubBaseUrl, String operation, String callbackUrl)
+    private void makeSubscriptionAPICall(String topic, String webSubHubBaseUrl, String operation, String callbackUrl,
+                                         String secret)
             throws WebSubAdapterException {
 
         ClientManager clientManager = WebSubHubAdapterDataHolder.getInstance().getClientManager();
@@ -120,10 +108,14 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
 
         httpPost.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
 
+        //TODO: add build url based on operation
         List<BasicNameValuePair> params = new ArrayList<>();
         params.add(new BasicNameValuePair(HUB_CALLBACK, callbackUrl));
         params.add(new BasicNameValuePair(HUB_MODE, operation));
         params.add(new BasicNameValuePair(HUB_TOPIC, topic));
+        if (secret != null) {
+            params.add(new BasicNameValuePair(HUB_SECRET, secret));
+        }
 
         httpPost.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
 
@@ -145,7 +137,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
         int responseCode = statusLine.getStatusCode();
         String responsePhrase = statusLine.getReasonPhrase();
 
-        if (responseCode == HttpStatus.SC_OK) {
+        if (responseCode == HttpStatus.SC_ACCEPTED) {
             HttpEntity entity = response.getEntity();
             WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(httpPost, requestStartTime,
                     WebSubHubCorrelationLogUtils.RequestStatus.COMPLETED.getStatus(),
