@@ -21,10 +21,12 @@ package org.wso2.identity.event.websubhub.publisher.service;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
 import org.wso2.carbon.identity.topic.management.api.exception.TopicManagementException;
 import org.wso2.carbon.identity.topic.management.api.service.TopicManager;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
@@ -108,6 +110,7 @@ public class WebSubTopicManagerImpl implements TopicManager {
 
         ClientManager clientManager = WebSubHubAdapterDataHolder.getInstance().getClientManager();
         HttpPost httpPost = clientManager.createHttpPost(topicMgtUrl, null);
+        httpPost.setHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 
         WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
         final long requestStartTime = System.currentTimeMillis();

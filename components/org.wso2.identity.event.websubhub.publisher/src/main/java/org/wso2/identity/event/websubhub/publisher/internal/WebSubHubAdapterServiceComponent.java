@@ -25,12 +25,14 @@ import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
+import org.wso2.carbon.identity.topic.management.api.service.TopicManager;
 import org.wso2.carbon.identity.webhook.management.api.service.EventSubscriber;
 import org.wso2.identity.event.common.publisher.EventPublisher;
 import org.wso2.identity.event.websubhub.publisher.config.OutboundAdapterConfigurationProvider;
 import org.wso2.identity.event.websubhub.publisher.config.WebSubAdapterConfiguration;
 import org.wso2.identity.event.websubhub.publisher.service.WebSubEventPublisherImpl;
 import org.wso2.identity.event.websubhub.publisher.service.WebSubEventSubscriberImpl;
+import org.wso2.identity.event.websubhub.publisher.service.WebSubTopicManagerImpl;
 
 /**
  * WebSubHub Outbound Event Adapter service component.
@@ -58,6 +60,11 @@ public class WebSubHubAdapterServiceComponent {
                 WebSubEventSubscriberImpl subscriberService = new WebSubEventSubscriberImpl();
                 context.getBundleContext().registerService(EventSubscriber.class.getName(),
                         subscriberService, null);
+
+                // Register WebhookTopicManager service
+                WebSubTopicManagerImpl topicManagerService = new WebSubTopicManagerImpl();
+                context.getBundleContext().registerService(TopicManager.class.getName(),
+                        topicManagerService, null);
                 WebSubHubAdapterDataHolder.getInstance().setClientManager(new ClientManager());
                 WebSubHubAdapterDataHolder.getInstance().setResourceRetriever(new DefaultResourceRetriever());
                 log.debug("Successfully activated the WebSubHub adapter service.");

@@ -289,7 +289,6 @@ public class WebSubHubAdapterUtil {
      */
     public static String constructHubTopic(String channelUri, String eventProfileVersion, String tenantDomain) {
 
-        // Remove protocol (http:// or https://) safely using regex
         String cleanedChannelUri = channelUri.replaceFirst(REGEX_HTTP_OR_HTTPS_PREFIX, "");
         return tenantDomain + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + eventProfileVersion +
                 WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + cleanedChannelUri;

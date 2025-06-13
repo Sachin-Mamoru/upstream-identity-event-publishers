@@ -49,6 +49,7 @@ public class WebSubHubAdapterConstants {
         public static final String PUBLISH = "publish";
         public static final String HUB_MODE = "hub.mode";
         public static final String HUB_TOPIC = "hub.topic";
+        public static final String HUB_SECRET = "hub.secret";
         public static final String HUB_CALLBACK = "hub.callback";
         public static final String HUB_REASON = "hub.reason";
         public static final String HUB_ACTIVE_SUBS = "hub.active.subscribers";

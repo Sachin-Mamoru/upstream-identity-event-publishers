@@ -27,6 +27,7 @@ import org.mockito.MockitoAnnotations;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+import org.wso2.carbon.identity.webhook.management.api.exception.WebhookMgtException;
 import org.wso2.identity.event.websubhub.publisher.internal.ClientManager;
 import org.wso2.identity.event.websubhub.publisher.internal.WebSubHubAdapterDataHolder;
 import org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil;
@@ -41,11 +42,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.testng.Assert.assertTrue;
 
-/**
- * Unit tests for the WebSubEventSubscriberImpl class.
- */
 public class WebSubEventSubscriberImplTest {
 
     private WebSubEventSubscriberImpl subscriberService;
@@ -95,38 +92,72 @@ public class WebSubEventSubscriberImplTest {
     @Test
     public void testSubscribeSuccess() throws Exception {
 
-        List<String> topics = Arrays.asList("topic1", "topic2");
+        List<String> channels = Arrays.asList("topic1", "topic2");
+        String eventProfileVersion = "v1";
         String callbackUrl = "http://test-callback.com";
+        String secret = "secret";
         String tenantDomain = "test-tenant";
 
         HttpPost mockHttpPost = mock(HttpPost.class);
         when(mockClientManager.createHttpPost(anyString(), any())).thenReturn(mockHttpPost);
         when(mockClientManager.execute(any())).thenReturn(mockHttpResponse);
-        when(mockHttpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
-        when(mockHttpResponse.getStatusLine().getStatusCode()).thenReturn(200);
+        StatusLine mockStatusLine = mock(StatusLine.class);
+        when(mockHttpResponse.getStatusLine()).thenReturn(mockStatusLine);
+        when(mockStatusLine.getStatusCode()).thenReturn(202); // SC_ACCEPTED
 
-        boolean result = subscriberService.subscribe(topics, callbackUrl, tenantDomain);
+        subscriberService.subscribe(channels, eventProfileVersion, callbackUrl, secret, tenantDomain);
 
-        assertTrue(result);
         verify(mockClientManager, times(2)).execute(any());
     }
 
     @Test
     public void testUnsubscribeSuccess() throws Exception {
 
-        List<String> topics = Arrays.asList("topic1", "topic2");
+        List<String> channels = Arrays.asList("topic1", "topic2");
+        String eventProfileVersion = "v1";
         String callbackUrl = "http://test-callback.com";
         String tenantDomain = "test-tenant";
 
         HttpPost mockHttpPost = mock(HttpPost.class);
         when(mockClientManager.createHttpPost(anyString(), any())).thenReturn(mockHttpPost);
         when(mockClientManager.execute(any())).thenReturn(mockHttpResponse);
-        when(mockHttpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
-        when(mockHttpResponse.getStatusLine().getStatusCode()).thenReturn(200);
+        StatusLine mockStatusLine = mock(StatusLine.class);
+        when(mockHttpResponse.getStatusLine()).thenReturn(mockStatusLine);
+        when(mockStatusLine.getStatusCode()).thenReturn(202); // SC_ACCEPTED
 
-        boolean result = subscriberService.unsubscribe(topics, callbackUrl, tenantDomain);
+        subscriberService.unsubscribe(channels, eventProfileVersion, callbackUrl, tenantDomain);
 
-        assertTrue(result);
         verify(mockClientManager, times(2)).execute(any());
+    }
+
+    @Test(expectedExceptions = WebhookMgtException.class)
+    public void testSubscribeThrowsException() throws Exception {
+
+        List<String> channels = Arrays.asList("topic1");
+        String eventProfileVersion = "v1";
+        String callbackUrl = "http://test-callback.com";
+        String secret = "secret";
+        String tenantDomain = "test-tenant";
+
+        when(mockClientManager.createHttpPost(anyString(), any()))
+                .thenThrow(
+                        new org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException("fail", null));
+
+        subscriberService.subscribe(channels, eventProfileVersion, callbackUrl, secret, tenantDomain);
+    }
+
+    @Test(expectedExceptions = WebhookMgtException.class)
+    public void testUnsubscribeThrowsException() throws Exception {
+
+        List<String> channels = Arrays.asList("topic1");
+        String eventProfileVersion = "v1";
+        String callbackUrl = "http://test-callback.com";
+        String tenantDomain = "test-tenant";
+
+        when(mockClientManager.createHttpPost(anyString(), any()))
+                .thenThrow(
+                        new org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException("fail", null));
+
+        subscriberService.unsubscribe(channels, eventProfileVersion, callbackUrl, tenantDomain);
     }
 }
