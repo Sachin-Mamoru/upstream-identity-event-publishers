@@ -134,7 +134,7 @@ public class WebSubTopicManagerImpl implements TopicManager {
                 }
                 handleTopicMgtResponse(response, httpPost, topic, operation, requestStartTime);
                 break; // Success or handled error
-            } catch (IOException e) {
+            } catch (IOException | WebSubAdapterException e) {
                 if (attempt < MAX_RETRIES) {
                     attempt++;
                     log.info("Retrying topic management API call, attempt " + attempt + " for topic: " + topic);
@@ -146,8 +146,6 @@ public class WebSubTopicManagerImpl implements TopicManager {
                     }
                     continue;
                 }
-                throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, e, topic, tenantDomain);
-            } catch (WebSubAdapterException e) {
                 throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, e, topic, tenantDomain);
             }
         }

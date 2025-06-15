@@ -138,7 +138,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
                 }
                 handleSubscriptionResponse(response, httpPost, topic, operation, requestStartTime);
                 break;
-            } catch (IOException e) {
+            } catch (IOException | WebSubAdapterException e) {
                 if (attempt < MAX_RETRIES) {
                     attempt++;
                     log.info("Retrying subscription API call, attempt " + attempt + " for topic: " + topic);
@@ -150,8 +150,6 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
                     }
                     continue;
                 }
-                throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, e);
-            } catch (WebSubAdapterException e) {
                 throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, e);
             }
         }

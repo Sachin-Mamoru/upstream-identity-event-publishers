@@ -169,7 +169,7 @@ public class WebSubTopicManagerImplTest {
     }
 
     @Test
-    public void testRegisterTopicSuccess() throws TopicManagementException, WebSubAdapterException {
+    public void testRegisterTopicSuccess() throws TopicManagementException, WebSubAdapterException, IOException {
         // Setup success response
         when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
 
@@ -182,7 +182,7 @@ public class WebSubTopicManagerImplTest {
     }
 
     @Test
-    public void testDeregisterTopicSuccess() throws TopicManagementException, WebSubAdapterException {
+    public void testDeregisterTopicSuccess() throws TopicManagementException, WebSubAdapterException, IOException {
 
         when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
 
