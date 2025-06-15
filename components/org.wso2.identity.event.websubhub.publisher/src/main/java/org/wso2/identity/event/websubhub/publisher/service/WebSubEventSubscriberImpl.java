@@ -60,6 +60,8 @@ import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterU
 public class WebSubEventSubscriberImpl implements EventSubscriber {
 
     private static final Log log = LogFactory.getLog(WebSubEventSubscriberImpl.class);
+    private static final int MAX_RETRIES = 2;
+    private static final long RETRY_DELAY_MS = 500;
 
     @Override
     public String getName() {
@@ -100,32 +102,58 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
     }
 
     private void makeSubscriptionAPICall(String topic, String webSubHubBaseUrl, String operation, String callbackUrl,
-                                         String secret)
-            throws WebSubAdapterException {
+                                         String secret) throws WebSubAdapterException {
 
         ClientManager clientManager = WebSubHubAdapterDataHolder.getInstance().getClientManager();
-        HttpPost httpPost = clientManager.createHttpPost(webSubHubBaseUrl, null);
 
-        httpPost.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+        int attempt = 0;
+        while (true) {
+            HttpPost httpPost = clientManager.createHttpPost(webSubHubBaseUrl, null);
+            httpPost.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
 
-        //TODO: add build url based on operation
-        List<BasicNameValuePair> params = new ArrayList<>();
-        params.add(new BasicNameValuePair(HUB_CALLBACK, callbackUrl));
-        params.add(new BasicNameValuePair(HUB_MODE, operation));
-        params.add(new BasicNameValuePair(HUB_TOPIC, topic));
-        if (secret != null) {
-            params.add(new BasicNameValuePair(HUB_SECRET, secret));
-        }
+            List<BasicNameValuePair> params = new ArrayList<>();
+            params.add(new BasicNameValuePair(HUB_CALLBACK, callbackUrl));
+            params.add(new BasicNameValuePair(HUB_MODE, operation));
+            params.add(new BasicNameValuePair(HUB_TOPIC, topic));
+            if (secret != null) {
+                params.add(new BasicNameValuePair(HUB_SECRET, secret));
+            }
+            httpPost.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
 
-        httpPost.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
+            WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
+            final long requestStartTime = System.currentTimeMillis();
 
-        WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
-        final long requestStartTime = System.currentTimeMillis();
-
-        try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.execute(httpPost)) {
-            handleSubscriptionResponse(response, httpPost, topic, operation, requestStartTime);
-        } catch (IOException | WebSubAdapterException e) {
-            throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, e);
+            try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.execute(httpPost)) {
+                int responseCode = response.getStatusLine().getStatusCode();
+                if (responseCode >= 500 && attempt < MAX_RETRIES) {
+                    attempt++;
+                    log.info("Retrying subscription API call, attempt " + attempt + " for topic: " + topic);
+                    try {
+                        Thread.sleep(RETRY_DELAY_MS);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, ie);
+                    }
+                    continue;
+                }
+                handleSubscriptionResponse(response, httpPost, topic, operation, requestStartTime);
+                break;
+            } catch (IOException e) {
+                if (attempt < MAX_RETRIES) {
+                    attempt++;
+                    log.info("Retrying subscription API call, attempt " + attempt + " for topic: " + topic);
+                    try {
+                        Thread.sleep(RETRY_DELAY_MS);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, ie);
+                    }
+                    continue;
+                }
+                throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, e);
+            } catch (WebSubAdapterException e) {
+                throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, e);
+            }
         }
     }
 
