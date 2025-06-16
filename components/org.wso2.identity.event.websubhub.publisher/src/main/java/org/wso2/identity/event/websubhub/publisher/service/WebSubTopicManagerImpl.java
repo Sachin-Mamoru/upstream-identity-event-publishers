@@ -64,7 +64,7 @@ public class WebSubTopicManagerImpl implements TopicManager {
 
     private static final Log log = LogFactory.getLog(WebSubTopicManagerImpl.class);
     private static final int MAX_RETRIES = 2;
-    private static final long RETRY_DELAY_MS = 500;
+    private static final long RETRY_DELAY_MS = 400;
 
     @Override
     public String getName() {

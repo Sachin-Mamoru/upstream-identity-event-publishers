@@ -61,7 +61,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
 
     private static final Log log = LogFactory.getLog(WebSubEventSubscriberImpl.class);
     private static final int MAX_RETRIES = 2;
-    private static final long RETRY_DELAY_MS = 500;
+    private static final long RETRY_DELAY_MS = 400;
 
     @Override
     public String getName() {
@@ -127,7 +127,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
                 int responseCode = response.getStatusLine().getStatusCode();
                 if (responseCode >= 500 && attempt < MAX_RETRIES) {
                     attempt++;
-                    log.info("Retrying subscription API call, attempt " + attempt + " for topic: " + topic);
+                    log.debug("Retrying subscription API call, attempt " + attempt + " for topic: " + topic);
                     try {
                         Thread.sleep(RETRY_DELAY_MS);
                     } catch (InterruptedException ie) {
@@ -139,9 +139,10 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
                 handleSubscriptionResponse(response, httpPost, topic, operation, requestStartTime);
                 break;
             } catch (IOException | WebSubAdapterException e) {
+                log.debug("Error subscribing to topic: " + topic + ". Error: " + e.getMessage(), e);
                 if (attempt < MAX_RETRIES) {
                     attempt++;
-                    log.info("Retrying subscription API call, attempt " + attempt + " for topic: " + topic);
+                    log.debug("Retrying subscription API call, attempt " + attempt + " for topic: " + topic);
                     try {
                         Thread.sleep(RETRY_DELAY_MS);
                     } catch (InterruptedException ie) {
