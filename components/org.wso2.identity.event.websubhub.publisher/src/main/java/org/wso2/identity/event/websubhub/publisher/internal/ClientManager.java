@@ -232,12 +232,8 @@ public class ClientManager {
      * @param httpPost The HTTP POST request to execute.
      * @return The HTTP response.
      */
-    public HttpResponse execute(HttpPost httpPost) {
+    public HttpResponse execute(HttpPost httpPost) throws IOException {
 
-        try {
-            return getHttpClient().execute(httpPost);
-        } catch (IOException e) {
-            throw new IdentityRuntimeException("Error occurred while executing HTTP POST request", e);
-        }
+        return getHttpClient().execute(httpPost);
     }
 }

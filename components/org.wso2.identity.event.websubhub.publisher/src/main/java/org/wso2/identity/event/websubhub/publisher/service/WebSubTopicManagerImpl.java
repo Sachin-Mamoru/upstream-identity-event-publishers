@@ -63,6 +63,8 @@ import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterU
 public class WebSubTopicManagerImpl implements TopicManager {
 
     private static final Log log = LogFactory.getLog(WebSubTopicManagerImpl.class);
+    private static final int MAX_RETRIES = 2;
+    private static final long RETRY_DELAY_MS = 400;
 
     @Override
     public String getName() {
@@ -107,18 +109,45 @@ public class WebSubTopicManagerImpl implements TopicManager {
             throws WebSubAdapterException {
 
         String topicMgtUrl = buildURL(topic, webSubHubBaseUrl, operation);
-
         ClientManager clientManager = WebSubHubAdapterDataHolder.getInstance().getClientManager();
-        HttpPost httpPost = clientManager.createHttpPost(topicMgtUrl, null);
-        httpPost.setHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 
-        WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
-        final long requestStartTime = System.currentTimeMillis();
+        int attempt = 0;
+        while (true) {
+            HttpPost httpPost = clientManager.createHttpPost(topicMgtUrl, null);
+            httpPost.setHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 
-        try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.execute(httpPost)) {
-            handleTopicMgtResponse(response, httpPost, topic, operation, requestStartTime);
-        } catch (IOException | WebSubAdapterException e) {
-            throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, e, topic, tenantDomain);
+            WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
+            final long requestStartTime = System.currentTimeMillis();
+
+            try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.execute(httpPost)) {
+                int responseCode = response.getStatusLine().getStatusCode();
+                if (responseCode >= 500 && attempt < MAX_RETRIES) {
+                    attempt++;
+                    log.info("Retrying topic management API call, attempt " + attempt + " for topic: " + topic);
+                    try {
+                        Thread.sleep(RETRY_DELAY_MS);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, ie, topic, tenantDomain);
+                    }
+                    continue;
+                }
+                handleTopicMgtResponse(response, httpPost, topic, operation, requestStartTime);
+                break; // Success or handled error
+            } catch (IOException | WebSubAdapterException e) {
+                if (attempt < MAX_RETRIES) {
+                    attempt++;
+                    log.info("Retrying topic management API call, attempt " + attempt + " for topic: " + topic);
+                    try {
+                        Thread.sleep(RETRY_DELAY_MS);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, ie, topic, tenantDomain);
+                    }
+                    continue;
+                }
+                throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, e, topic, tenantDomain);
+            }
         }
     }
 
