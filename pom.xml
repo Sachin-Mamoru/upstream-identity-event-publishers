@@ -36,6 +36,7 @@
     <modules>
         <module>components/org.wso2.identity.event.common.publisher</module>
         <module>components/org.wso2.identity.event.websubhub.publisher</module>
+        <module>features/common-event-publisher</module>
     </modules>
 
     <scm>
@@ -399,6 +400,8 @@
         <carbon.identity.framework.imp.pkg.version.range>[5.20.90, 8.0.0)
         </carbon.identity.framework.imp.pkg.version.range>
         <com.googlecode.json-simple.wso2.version.range>[0.0.0, 2.0.0)</com.googlecode.json-simple.wso2.version.range>
+
+        <carbon.p2.plugin.version>5.1.2</carbon.p2.plugin.version>
 
         <maven.bundle.plugin.version>3.2.0</maven.bundle.plugin.version>
         <jacoco.version>0.8.2</jacoco.version>
