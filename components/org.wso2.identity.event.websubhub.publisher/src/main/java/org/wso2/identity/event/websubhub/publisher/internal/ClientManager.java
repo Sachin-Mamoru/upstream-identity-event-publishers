@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -37,24 +38,35 @@ import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.ssl.SSLContexts;
+import org.wso2.carbon.core.RegistryResources;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
+import org.wso2.carbon.identity.core.IdentityKeyStoreResolver;
+import org.wso2.carbon.identity.core.util.IdentityKeyStoreResolverException;
+import org.wso2.carbon.identity.core.util.IdentityKeyStoreResolverUtil;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
 import org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil;
 
 import java.io.IOException;
 import java.security.KeyManagementException;
+import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.UnrecoverableKeyException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 import static org.apache.http.HttpHeaders.ACCEPT;
 import static org.apache.http.HttpHeaders.CONTENT_TYPE;
+import static org.wso2.carbon.base.MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_PUBLISHING_EVENT_INVALID_PAYLOAD;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.CORRELATION_ID_REQUEST_HEADER;
+import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.WEBSUBHUB_KEYSTORE_NAME;
 
 /**
  * Class to retrieve the HTTP Clients.
@@ -64,6 +76,7 @@ public class ClientManager {
     private static final Log LOG = LogFactory.getLog(ClientManager.class);
     private final CloseableHttpAsyncClient httpAsyncClient;
     private final CloseableHttpClient httpClient;
+    private CloseableHttpClient mtlsHttpClient = null;
 
     public ClientManager() throws WebSubAdapterException {
 
@@ -100,9 +113,71 @@ public class ClientManager {
                     config.getSocketTimeout() + ", maxConnections=" +
                     syncConnectionManager.getMaxTotal() + ", maxConnectionsPerRoute=" +
                     syncConnectionManager.getDefaultMaxPerRoute());
+
+            // Initialize MTLS HttpClient
+            if (WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration()
+                    .isMtlsEnabled()) {
+                mtlsHttpClient = getMTLSClient();
+            }
         } catch (IOException e) {
             throw WebSubHubAdapterUtil.handleServerException(
                     WebSubHubAdapterConstants.ErrorMessages.ERROR_GETTING_ASYNC_CLIENT, e);
+        }
+    }
+
+    private CloseableHttpClient getMTLSClient() throws WebSubAdapterException {
+
+        try {
+            IdentityKeyStoreResolver resolver = IdentityKeyStoreResolver.getInstance();
+
+            // Load custom keystore and truststore
+            KeyStore customKeyStore = resolver.getCustomKeyStore(SUPER_TENANT_DOMAIN_NAME, WEBSUBHUB_KEYSTORE_NAME);
+            LOG.info("Custom keystore loaded successfully for tenant: " + SUPER_TENANT_DOMAIN_NAME +
+                    ", keystore: " + WEBSUBHUB_KEYSTORE_NAME + ", aliases: " + customKeyStore.size());
+
+            KeyStore trustStore = resolver.getTrustStore(SUPER_TENANT_DOMAIN_NAME);
+            LOG.info("Truststore loaded successfully for tenant: " + SUPER_TENANT_DOMAIN_NAME +
+                    ", aliases: " + trustStore.size());
+
+            // Initialize KeyManagerFactory with custom keystore
+            KeyManagerFactory keyManagerFactory =
+                    KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            keyManagerFactory.init(customKeyStore, resolver.getCustomKeyStoreConfig(
+                    IdentityKeyStoreResolverUtil.buildCustomKeyStoreName(WEBSUBHUB_KEYSTORE_NAME),
+                    RegistryResources.SecurityManagement.CustomKeyStore.PROP_KEY_PASSWORD).toCharArray());
+            LOG.info("KeyManagerFactory initialized using the custom keystore");
+
+            // Initialize TrustManagerFactory with truststore
+            TrustManagerFactory trustManagerFactory =
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(trustStore);
+            LOG.info("TrustManagerFactory initialized using the truststore");
+
+            // Build SSLContext
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(),
+                    new SecureRandom());
+            LOG.info("SSLContext initialized successfully for MTLS");
+
+            SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(
+                    sslContext,
+                    new String[] {"TLSv1.2"},
+                    null,
+                    SSLConnectionSocketFactory.getDefaultHostnameVerifier());
+
+            LOG.info("SSLConnectionSocketFactory created with TLSv1.2");
+
+            return HttpClients.custom()
+                    .setSSLSocketFactory(sslSocketFactory)
+                    .disableConnectionState()
+                    .disableCookieManagement()
+                    .build();
+
+        } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException |
+                 UnrecoverableKeyException | IdentityKeyStoreResolverException e) {
+            LOG.error("Error while initializing MTLS client", e);
+            throw WebSubHubAdapterUtil.handleServerException(
+                    WebSubHubAdapterConstants.ErrorMessages.ERROR_CREATING_SSL_CONTEXT, e);
         }
     }
 
@@ -118,6 +193,20 @@ public class ClientManager {
     public CloseableHttpClient getHttpClient() {
 
         return httpClient;
+    }
+
+    /**
+     * Get the effective HTTP client based on the configuration.
+     *
+     * @return CloseableHttpClient instance.
+     */
+    public CloseableHttpClient getEffectiveHttpClient() {
+
+        if (WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration()
+                .isMtlsEnabled()) {
+            return mtlsHttpClient;
+        }
+        return getHttpClient();
     }
 
     private RequestConfig createRequestConfig() {
@@ -235,5 +324,18 @@ public class ClientManager {
     public HttpResponse execute(HttpPost httpPost) throws IOException {
 
         return getHttpClient().execute(httpPost);
+    }
+
+    /**
+     * Execute an HTTP POST request for subscriber requests.
+     *
+     * @param httpPost The HTTP POST request to execute.
+     * @return The HTTP response.
+     * @throws IOException            If an I/O error occurs.
+     * @throws WebSubAdapterException If an error occurs while executing the request.
+     */
+    public HttpResponse executeSubscriberRequest(HttpPost httpPost) throws IOException, WebSubAdapterException {
+
+        return getEffectiveHttpClient().execute(httpPost);
     }
 }
