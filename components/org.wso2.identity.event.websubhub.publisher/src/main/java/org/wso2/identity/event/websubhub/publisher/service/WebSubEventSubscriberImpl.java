@@ -18,15 +18,13 @@
 
 package org.wso2.identity.event.websubhub.publisher.service;
 
+import okhttp3.FormBody;
+import okhttp3.Request;
+import okhttp3.Response;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
-import org.apache.http.StatusLine;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.message.BasicNameValuePair;
 import org.wso2.carbon.identity.webhook.management.api.exception.WebhookMgtException;
 import org.wso2.carbon.identity.webhook.management.api.service.EventSubscriber;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
@@ -37,7 +35,6 @@ import org.wso2.identity.event.websubhub.publisher.util.WebSubHubCorrelationLogU
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_SUBSCRIBING_TO_TOPIC;
@@ -101,44 +98,49 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
         }
     }
 
-    private void makeSubscriptionAPICall(String topic, String webSubHubBaseUrl, String operation, String callbackUrl,
-                                         String secret) throws WebSubAdapterException {
+    private void makeSubscriptionAPICall(String topic, String webSubHubBaseUrl, String operation,
+                                         String callbackUrl, String secret) throws WebSubAdapterException {
 
         ClientManager clientManager = WebSubHubAdapterDataHolder.getInstance().getClientManager();
-
         int attempt = 0;
+
         while (true) {
-            HttpPost httpPost = clientManager.createHttpPost(webSubHubBaseUrl, null);
-            httpPost.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+            // 1. Build form body
+            FormBody.Builder formBuilder = new FormBody.Builder(StandardCharsets.UTF_8)
+                    .add(HUB_CALLBACK, callbackUrl)
+                    .add(HUB_MODE, operation)
+                    .add(HUB_TOPIC, topic);
 
-            List<BasicNameValuePair> params = new ArrayList<>();
-            params.add(new BasicNameValuePair(HUB_CALLBACK, callbackUrl));
-            params.add(new BasicNameValuePair(HUB_MODE, operation));
-            params.add(new BasicNameValuePair(HUB_TOPIC, topic));
             if (secret != null) {
-                params.add(new BasicNameValuePair(HUB_SECRET, secret));
+                formBuilder.add(HUB_SECRET, secret);
             }
-            httpPost.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
 
-            WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
+            FormBody formBody = formBuilder.build();
+
+            // 2. Build OkHttp request
+            Request request = new Request.Builder()
+                    .url(webSubHubBaseUrl)
+                    .post(formBody)
+                    .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                    .build();
+
+            // 3. Trigger correlation log
+            WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(request); // updated for OkHttp
+
             final long requestStartTime = System.currentTimeMillis();
 
-            try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.execute(httpPost)) {
-                int responseCode = response.getStatusLine().getStatusCode();
+            try (Response response = clientManager.makeHTTPPostForMTLS(request)) {
+                int responseCode = response.code();
                 if (responseCode >= 500 && attempt < MAX_RETRIES) {
                     attempt++;
                     log.debug("Retrying subscription API call, attempt " + attempt + " for topic: " + topic);
-                    try {
-                        Thread.sleep(RETRY_DELAY_MS);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, ie);
-                    }
+                    Thread.sleep(RETRY_DELAY_MS);
                     continue;
                 }
-                handleSubscriptionResponse(response, httpPost, topic, operation, requestStartTime);
+                handleSubscriptionResponse(response, request, topic, operation,
+                        requestStartTime); // update this method to accept OkHttp Response
                 break;
-            } catch (IOException | WebSubAdapterException e) {
+            } catch (WebSubAdapterException | IOException e) {
                 log.debug("Error subscribing to topic: " + topic + ". Error: " + e.getMessage(), e);
                 if (attempt < MAX_RETRIES) {
                     attempt++;
@@ -152,36 +154,40 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
                     continue;
                 }
                 throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, e);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, ie);
             }
         }
     }
 
-    private void handleSubscriptionResponse(CloseableHttpResponse response, HttpPost httpPost,
+    private void handleSubscriptionResponse(Response response, Request request,
                                             String topic, String operation, long requestStartTime)
             throws IOException, WebSubAdapterException {
 
-        StatusLine statusLine = response.getStatusLine();
-        int responseCode = statusLine.getStatusCode();
-        String responsePhrase = statusLine.getReasonPhrase();
+        int responseCode = response.code();
+        String responsePhrase = response.message();
+
+        String responseBody = response.body() != null ? response.body().string() : null;
 
         if (responseCode == HttpStatus.SC_ACCEPTED) {
-            HttpEntity entity = response.getEntity();
-            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(httpPost, requestStartTime,
+            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(
+                    request, requestStartTime,
                     WebSubHubCorrelationLogUtils.RequestStatus.COMPLETED.getStatus(),
                     String.valueOf(responseCode), responsePhrase);
-            handleSuccessfulOperation(entity, topic, operation);
+            handleSuccessfulOperation(responseBody, topic, operation);
         } else if (responseCode == HttpStatus.SC_NOT_FOUND) {
-            HttpEntity entity = response.getEntity();
-            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(httpPost, requestStartTime,
+            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(
+                    request, requestStartTime,
                     WebSubHubCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
                     String.valueOf(responseCode), responsePhrase);
-            handleErrorResponse(entity, topic, operation);
+            handleErrorResponse(responseBody, topic, operation);
         } else {
-            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(httpPost, requestStartTime,
+            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(
+                    request, requestStartTime,
                     WebSubHubCorrelationLogUtils.RequestStatus.CANCELLED.getStatus(),
                     String.valueOf(responseCode), responsePhrase);
-            HttpEntity entity = response.getEntity();
-            handleFailedOperation(entity, topic, operation, responseCode);
+            handleFailedOperation(responseBody, topic, operation, responseCode);
         }
     }
 }

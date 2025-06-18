@@ -114,12 +114,12 @@ public class WebSubTopicManagerImplTest {
 
         mockedStaticCorrelationLogUtils = mockStatic(WebSubHubCorrelationLogUtils.class);
         mockedStaticCorrelationLogUtils.when(() ->
-                        WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(any(HttpPost.class)))
+                        WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(any(okhttp3.Request.class)))
                 .thenAnswer(invocation -> null);
 
         mockedStaticCorrelationLogUtils.when(() ->
                         WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(
-                                any(HttpPost.class), anyLong(), anyString(), anyString(), anyString()))
+                                any(okhttp3.Request.class), anyLong(), anyString(), anyString(), anyString()))
                 .thenAnswer(invocation -> null);
 
         when(mockClientManager.createHttpPost(anyString(), any())).thenReturn(mockHttpPost);
@@ -192,7 +192,7 @@ public class WebSubTopicManagerImplTest {
         verify(mockClientManager).execute(any(HttpPost.class));
 
         mockedStaticCorrelationLogUtils.verify(() ->
-                WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(any(HttpPost.class)));
+                WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(any(okhttp3.Request.class)));
         mockedStaticUtil.verify(() ->
                 WebSubHubAdapterUtil.handleSuccessfulOperation(any(), eq("test-topic"), eq("deregister")));
     }

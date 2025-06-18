@@ -22,11 +22,8 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.util.EntityUtils;
 import org.slf4j.MDC;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
 import org.wso2.carbon.identity.topic.management.api.exception.TopicManagementException;
@@ -38,9 +35,7 @@ import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterExcept
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterServerException;
 import org.wso2.identity.event.websubhub.publisher.internal.WebSubHubAdapterDataHolder;
 
-import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -120,6 +115,23 @@ public class WebSubHubAdapterUtil {
     }
 
     /**
+     * Handle server exceptions without a throwable.
+     *
+     * @param error Error message.
+     * @param data  Data.
+     * @return WebSubAdapterServerException.
+     */
+    public static WebSubAdapterServerException handleServerException(
+            WebSubHubAdapterConstants.ErrorMessages error, String... data) {
+
+        String description = error.getDescription();
+        if (ArrayUtils.isNotEmpty(data)) {
+            description = String.format(description, data);
+        }
+        return new WebSubAdapterServerException(error.getMessage(), description, error.getCode());
+    }
+
+    /**
      * Handle topic management exceptions without a throwable.
      *
      * @param error Error message.
@@ -139,21 +151,18 @@ public class WebSubHubAdapterUtil {
     /**
      * Parse the response from the event hub.
      *
-     * @param response HTTP response.
+     * @param responseBody Raw response body as a string (e.g., URL-encoded).
      * @return Parsed response as a map.
-     * @throws IOException If an error occurs while reading the response.
      */
-    public static Map<String, String> parseEventHubResponse(CloseableHttpResponse response) throws IOException {
+    public static Map<String, String> parseEventHubResponse(String responseBody) {
 
         Map<String, String> map = new HashMap<>();
-        HttpEntity entity = response.getEntity();
 
-        if (entity != null) {
-            String responseContent = EntityUtils.toString(entity, StandardCharsets.UTF_8);
-            log.debug("Parsing response content from event hub: " + responseContent);
-            String[] responseParams = responseContent.split(URL_PARAM_SEPARATOR);
+        if (responseBody != null && !responseBody.isEmpty()) {
+            log.debug("Parsing response content from event hub: " + responseBody);
+            String[] responseParams = responseBody.split(URL_PARAM_SEPARATOR);
             for (String param : responseParams) {
-                String[] keyValuePair = param.split(URL_KEY_VALUE_SEPARATOR);
+                String[] keyValuePair = param.split(URL_KEY_VALUE_SEPARATOR, 2);
                 if (keyValuePair.length == 2) {
                     map.put(keyValuePair[0], keyValuePair[1]);
                 }
@@ -173,7 +182,7 @@ public class WebSubHubAdapterUtil {
 
         try {
             MDC.put(CORRELATION_ID_MDC, request.getFirstHeader(CORRELATION_ID_REQUEST_HEADER).getValue());
-            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(request, requestStartTime, otherParams);
+            WebSubHubCorrelationLogUtils.logHttpRequestCorrelationData(request, requestStartTime, otherParams);
         } finally {
             MDC.remove(CORRELATION_ID_MDC);
         }
@@ -318,18 +327,16 @@ public class WebSubHubAdapterUtil {
      * @param topic     Topic.
      * @param operation Operation.
      * @throws WebSubAdapterException If an error occurs while handling the response.
-     * @throws IOException            If an error occurs while reading the response.
      */
-    public static void handleSuccessfulOperation(HttpEntity entity, String topic, String operation)
-            throws WebSubAdapterException, IOException {
+    public static void handleSuccessfulOperation(String entity, String topic, String operation)
+            throws WebSubAdapterException {
 
         if (entity != null) {
-            String responseString = EntityUtils.toString(entity, StandardCharsets.UTF_8);
-            if (RESPONSE_FOR_SUCCESSFUL_OPERATION.equals(responseString)) {
+            if (RESPONSE_FOR_SUCCESSFUL_OPERATION.equals(entity)) {
                 log.debug("Success WebSubHub operation: " + operation + ", topic: " + topic);
             } else {
-                throw handleServerException(ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB, null,
-                        topic, operation, responseString);
+                throw handleServerException(ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB,
+                        topic, operation, entity);
             }
         } else {
             String message = String.format(ERROR_EMPTY_RESPONSE_FROM_WEBSUB_HUB.getDescription(), topic, operation);
@@ -343,17 +350,13 @@ public class WebSubHubAdapterUtil {
      * @param entity    HTTP entity.
      * @param topic     Topic.
      * @param operation Operation.
-     * @throws IOException If an error occurs while reading the response.
+     * @throws WebSubAdapterServerException If an error occurs while handling the response.
      */
-    public static void handleErrorResponse(HttpEntity entity, String topic, String operation)
-            throws IOException, WebSubAdapterServerException {
+    public static void handleErrorResponse(String entity, String topic, String operation)
+            throws WebSubAdapterServerException {
 
-        String responseString = "";
-        if (entity != null) {
-            responseString = EntityUtils.toString(entity, StandardCharsets.UTF_8);
-        }
-        throw handleServerException(ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB, null,
-                topic, operation, responseString);
+        throw handleServerException(ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB,
+                topic, operation, entity);
     }
 
     /**
@@ -363,18 +366,13 @@ public class WebSubHubAdapterUtil {
      * @param topic        Topic.
      * @param operation    Operation.
      * @param responseCode Response code.
-     * @throws IOException            If an error occurs while reading the response.
      * @throws WebSubAdapterException If an error occurs while handling the response.
      */
-    public static void handleFailedOperation(HttpEntity entity, String topic, String operation, int responseCode)
-            throws IOException, WebSubAdapterException {
+    public static void handleFailedOperation(String entity, String topic, String operation, int responseCode)
+            throws WebSubAdapterException {
 
-        String responseString = "";
-        if (entity != null) {
-            responseString = EntityUtils.toString(entity, StandardCharsets.UTF_8);
-        }
         String message = String.format(ERROR_BACKEND_ERROR_FROM_WEBSUB_HUB.getDescription(),
-                topic, operation, responseString);
+                topic, operation, entity);
         log.error(message + ", Response code:" + responseCode);
         throw new WebSubAdapterServerException(message, ERROR_BACKEND_ERROR_FROM_WEBSUB_HUB.getCode());
     }

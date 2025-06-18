@@ -28,6 +28,11 @@ public class WebSubAdapterServerException extends WebSubAdapterException {
         super(message, errorCode);
     }
 
+    public WebSubAdapterServerException(String message, String description, String errorCode) {
+
+        super(message, description, errorCode);
+    }
+
     public WebSubAdapterServerException(String message, String description, String errorCode, Throwable throwable) {
 
         super(message, description, errorCode, throwable);

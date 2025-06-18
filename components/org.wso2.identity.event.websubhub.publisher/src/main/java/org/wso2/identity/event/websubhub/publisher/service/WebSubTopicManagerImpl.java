@@ -18,15 +18,13 @@
 
 package org.wso2.identity.event.websubhub.publisher.service;
 
+import okhttp3.MediaType;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
 import org.wso2.carbon.identity.topic.management.api.exception.TopicManagementException;
 import org.wso2.carbon.identity.topic.management.api.service.TopicManager;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
@@ -113,26 +111,23 @@ public class WebSubTopicManagerImpl implements TopicManager {
 
         int attempt = 0;
         while (true) {
-            HttpPost httpPost = clientManager.createHttpPost(topicMgtUrl, null);
-            httpPost.setHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+            Request request = new Request.Builder()
+                    .url(topicMgtUrl)
+                    .post(RequestBody.create("", MediaType.parse("application/json")))
+                    .build();
 
-            WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
+            WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(request);
             final long requestStartTime = System.currentTimeMillis();
 
-            try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.execute(httpPost)) {
-                int responseCode = response.getStatusLine().getStatusCode();
+            try (Response response = clientManager.makeHTTPPostForMTLS(request)) {
+                int responseCode = response.code();
                 if (responseCode >= 500 && attempt < MAX_RETRIES) {
                     attempt++;
                     log.info("Retrying topic management API call, attempt " + attempt + " for topic: " + topic);
-                    try {
-                        Thread.sleep(RETRY_DELAY_MS);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, ie, topic, tenantDomain);
-                    }
+                    Thread.sleep(RETRY_DELAY_MS);
                     continue;
                 }
-                handleTopicMgtResponse(response, httpPost, topic, operation, requestStartTime);
+                handleTopicMgtResponse(response, request, topic, operation, requestStartTime);
                 break; // Success or handled error
             } catch (IOException | WebSubAdapterException e) {
                 if (attempt < MAX_RETRIES) {
@@ -147,47 +142,49 @@ public class WebSubTopicManagerImpl implements TopicManager {
                     continue;
                 }
                 throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, e, topic, tenantDomain);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, ie, topic, tenantDomain);
             }
         }
     }
 
-    private void handleTopicMgtResponse(CloseableHttpResponse response, HttpPost httpPost,
+    private void handleTopicMgtResponse(Response response, Request request,
                                         String topic, String operation, long requestStartTime)
             throws IOException, WebSubAdapterException {
 
-        StatusLine statusLine = response.getStatusLine();
-        int responseCode = statusLine.getStatusCode();
-        String responsePhrase = statusLine.getReasonPhrase();
+        int responseCode = response.code();
+        String responsePhrase = response.message();
+        String responseBody = response.body() != null ? response.body().string() : null;
 
         if (responseCode == HttpStatus.SC_OK) {
-            HttpEntity entity = response.getEntity();
-            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(httpPost, requestStartTime,
+            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(request, requestStartTime,
                     WebSubHubCorrelationLogUtils.RequestStatus.COMPLETED.getStatus(),
                     String.valueOf(responseCode), responsePhrase);
-            handleSuccessfulOperation(entity, topic, operation);
+            handleSuccessfulOperation(responseBody, topic, operation);
         } else if ((responseCode == HttpStatus.SC_CONFLICT && operation.equals(REGISTER)) ||
                 (responseCode == HttpStatus.SC_NOT_FOUND && operation.equals(DEREGISTER))) {
-            HttpEntity entity = response.getEntity();
-            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(httpPost, requestStartTime,
+            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(request, requestStartTime,
                     WebSubHubCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
                     String.valueOf(responseCode), responsePhrase);
-            handleErrorResponse(entity, topic, operation);
+            handleErrorResponse(responseBody, topic, operation);
         } else {
-            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(httpPost, requestStartTime,
+            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(request, requestStartTime,
                     WebSubHubCorrelationLogUtils.RequestStatus.CANCELLED.getStatus(),
                     String.valueOf(responseCode), responsePhrase);
+
             if (responseCode == HttpStatus.SC_FORBIDDEN) {
-                handleForbiddenResponse(response, topic);
+                handleForbiddenResponse(responseBody, topic);
             }
-            HttpEntity entity = response.getEntity();
-            handleFailedOperation(entity, topic, operation, responseCode);
+
+            handleFailedOperation(responseBody, topic, operation, responseCode);
         }
     }
 
-    private static void handleForbiddenResponse(CloseableHttpResponse response, String topic) throws IOException,
-            WebSubAdapterException {
+    private static void handleForbiddenResponse(String responseBody, String topic)
+            throws WebSubAdapterException {
 
-        Map<String, String> hubResponse = parseEventHubResponse(response);
+        Map<String, String> hubResponse = parseEventHubResponse(responseBody);
         if (!hubResponse.isEmpty() && hubResponse.containsKey(HUB_REASON)) {
             String errorMsg = String.format(ERROR_TOPIC_DEREG_FAILURE_ACTIVE_SUBS, topic);
             if (errorMsg.equals(hubResponse.get(HUB_REASON))) {

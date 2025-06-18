@@ -67,6 +67,7 @@ public class WebSubHubAdapterConstants {
         public static final Integer DEFAULT_HTTP_MAX_CONNECTIONS_PER_ROUTE = 2;
         public static final String SUBSCRIBE = "subscribe";
         public static final String UNSUBSCRIBE = "unsubscribe";
+        public static final String WEBSUBHUB_KEYSTORE_NAME = "websubhub-dev-client.p12";
 
         private Http() {
 
@@ -133,7 +134,15 @@ public class WebSubHubAdapterConstants {
         ERROR_SUBSCRIPTION_ALREADY_EXISTS("65012", "Subscription already exists.",
                 "Subscription already exists for topic: %s and callback: %s."),
         ERROR_SUBSCRIPTION_NOT_FOUND("65013", "Subscription not found.",
-                "No subscription found for topic: %s and callback: %s.");
+                "No subscription found for topic: %s and callback: %s."),
+        ERROR_INITIATING_CLIENT("65014", "Error initiating the client.",
+                "Error while initiating the client for WebSubHub Adapter."),
+        ERROR_TRUST_MANAGER_NOT_X509("65015", "Trust Manager is not a instance of X509TrustManager.",
+                "Trust Manager is not a instance of X509TrustManager for WebSubHub Adapter."),
+        ERROR_TRUST_MANAGERS_ARRAY_EMPTY("65016", "Trust Managers array is empty.",
+                "Trust Managers array is empty for WebSubHub Adapter."),
+        ERROR_MAKING_CALL_IO_EXCEPTION("65017", "Error making the call.",
+                "IO Exception occurred while making the call to WebSubHub Adapter.");
 
         private static final String WEB_SUB_ADAPTER_ERROR_CODE_PREFIX = "WEBSUB-";
         private final String code;
