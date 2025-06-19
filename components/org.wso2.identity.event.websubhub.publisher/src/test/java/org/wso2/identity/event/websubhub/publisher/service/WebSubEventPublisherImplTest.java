@@ -64,6 +64,7 @@ public class WebSubEventPublisherImplTest {
 
     @BeforeClass
     public void setUp() throws Exception {
+
         mocks = MockitoAnnotations.openMocks(this);
         adapterService = spy(new WebSubEventPublisherImpl());
 
@@ -84,6 +85,7 @@ public class WebSubEventPublisherImplTest {
 
     @AfterClass
     public void tearDown() throws Exception {
+
         if (mocks != null) {
             mocks.close();
         }
@@ -94,6 +96,7 @@ public class WebSubEventPublisherImplTest {
 
     @Test
     public void testPublishSuccess() throws WebSubAdapterException {
+
         try (MockedStatic<LoggerUtils> mockedLoggerUtils = mockStatic(LoggerUtils.class)) {
             mockedLoggerUtils.when(LoggerUtils::isDiagnosticLogsEnabled).thenReturn(false);
 
