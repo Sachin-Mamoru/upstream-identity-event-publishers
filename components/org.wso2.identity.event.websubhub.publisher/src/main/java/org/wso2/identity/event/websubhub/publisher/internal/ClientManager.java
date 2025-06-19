@@ -57,6 +57,7 @@ import java.security.UnrecoverableKeyException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
@@ -159,13 +160,20 @@ public class ClientManager {
                     new SecureRandom());
             LOG.info("SSLContext initialized successfully for MTLS");
 
+            // Disable hostname verification
+            // TODO: Enable once the hostname verification is properly configured
+            HostnameVerifier allowAllHosts = (hostname, session) -> {
+                LOG.warn("Hostname verification disabled: accepted hostname = " + hostname);
+                return true;
+            };
+
             SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(
                     sslContext,
-                    new String[] {"TLSv1.2"},
+                    new String[]{"TLSv1.2"},
                     null,
-                    SSLConnectionSocketFactory.getDefaultHostnameVerifier());
+                    allowAllHosts);  // ← HostnameVerifier overridden
 
-            LOG.info("SSLConnectionSocketFactory created with TLSv1.2");
+            LOG.info("SSLConnectionSocketFactory created with TLSv1.2 and hostname verification disabled");
 
             return HttpClients.custom()
                     .setSSLSocketFactory(sslSocketFactory)
