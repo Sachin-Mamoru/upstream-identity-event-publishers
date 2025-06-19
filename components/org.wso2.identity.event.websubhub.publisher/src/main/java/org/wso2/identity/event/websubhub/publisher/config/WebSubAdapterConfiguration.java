@@ -34,12 +34,14 @@ public class WebSubAdapterConfiguration {
     private static final String HTTP_CONNECTION_REQUEST_TIMEOUT = "adapter.websubhub.httpConnectionRequestTimeout";
     private static final String DEFAULT_MAX_CONNECTIONS = "adapter.websubhub.defaultMaxConnections";
     private static final String DEFAULT_MAX_CONNECTIONS_PER_ROUTE = "adapter.websubhub.defaultMaxConnectionsPerRoute";
+    private static final String MTLS_ENABLED = "adapter.websubhub.mtlsEnabled";
     private final boolean adapterEnabled;
     private final int httpConnectionTimeout;
     private final int httpReadTimeout;
     private final int httpConnectionRequestTimeout;
     private final int defaultMaxConnections;
     private final int defaultMaxConnectionsPerRoute;
+    private final boolean mtlsEnabled;
     private String webSubHubBaseUrl;
 
 
@@ -64,6 +66,8 @@ public class WebSubAdapterConfiguration {
             }
         }
 
+        this.mtlsEnabled = Boolean.parseBoolean(
+                configurationProvider.getProperty(MTLS_ENABLED));
         this.httpConnectionTimeout = parseIntOrDefault(
                 configurationProvider.getProperty(HTTP_CONNECTION_TIMEOUT),
                 WebSubHubAdapterConstants.Http.DEFAULT_HTTP_CONNECTION_TIMEOUT);
@@ -157,5 +161,15 @@ public class WebSubAdapterConfiguration {
     public int getDefaultMaxConnectionsPerRoute() {
 
         return defaultMaxConnectionsPerRoute;
+    }
+
+    /**
+     * Returns whether mTLS is enabled.
+     *
+     * @return true if mTLS is enabled, false otherwise.
+     */
+    public boolean isMtlsEnabled() {
+
+        return mtlsEnabled;
     }
 }

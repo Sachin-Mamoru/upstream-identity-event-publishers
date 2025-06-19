@@ -123,7 +123,8 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
             WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
             final long requestStartTime = System.currentTimeMillis();
 
-            try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.execute(httpPost)) {
+            try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.executeSubscriberRequest(
+                    httpPost)) {
                 int responseCode = response.getStatusLine().getStatusCode();
                 if (responseCode >= 500 && attempt < MAX_RETRIES) {
                     attempt++;

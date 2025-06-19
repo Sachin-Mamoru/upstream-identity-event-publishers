@@ -100,14 +100,14 @@ public class WebSubEventSubscriberImplTest {
 
         HttpPost mockHttpPost = mock(HttpPost.class);
         when(mockClientManager.createHttpPost(anyString(), any())).thenReturn(mockHttpPost);
-        when(mockClientManager.execute(any())).thenReturn(mockHttpResponse);
+        when(mockClientManager.executeSubscriberRequest(any())).thenReturn(mockHttpResponse);
         StatusLine mockStatusLine = mock(StatusLine.class);
         when(mockHttpResponse.getStatusLine()).thenReturn(mockStatusLine);
         when(mockStatusLine.getStatusCode()).thenReturn(202); // SC_ACCEPTED
 
         subscriberService.subscribe(channels, eventProfileVersion, callbackUrl, secret, tenantDomain);
 
-        verify(mockClientManager, times(2)).execute(any());
+        verify(mockClientManager, times(2)).executeSubscriberRequest(any());
     }
 
     @Test
@@ -120,14 +120,14 @@ public class WebSubEventSubscriberImplTest {
 
         HttpPost mockHttpPost = mock(HttpPost.class);
         when(mockClientManager.createHttpPost(anyString(), any())).thenReturn(mockHttpPost);
-        when(mockClientManager.execute(any())).thenReturn(mockHttpResponse);
+        when(mockClientManager.executeSubscriberRequest(any())).thenReturn(mockHttpResponse);
         StatusLine mockStatusLine = mock(StatusLine.class);
         when(mockHttpResponse.getStatusLine()).thenReturn(mockStatusLine);
         when(mockStatusLine.getStatusCode()).thenReturn(202); // SC_ACCEPTED
 
         subscriberService.unsubscribe(channels, eventProfileVersion, callbackUrl, tenantDomain);
 
-        verify(mockClientManager, times(2)).execute(any());
+        verify(mockClientManager, times(2)).executeSubscriberRequest(any());
     }
 
     @Test(expectedExceptions = WebhookMgtException.class)

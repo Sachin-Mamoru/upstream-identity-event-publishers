@@ -126,8 +126,8 @@
                             org.apache.http.entity; version="${httpasyncclient.version.range}",
                             org.apache.http.client.config; version="${httpasyncclient.version.range}",
                             org.apache.http.client.entity; version="${httpasyncclient.version.range}",
-                            org.apache.http.conn; version="${httpasyncclient.version.range}",
-                            org.apache.http.conn.ssl; version="${httpasyncclient.version.range}",
+                            org.apache.http.conn.*; version="${httpasyncclient.version.range}",
+                            org.apache.http.conn.ssl.*; version="${httpasyncclient.version.range}",
                             org.apache.http.util; version="${httpasyncclient.version.range}",
                             org.apache.http.ssl; version="${httpasyncclient.version.range}",
                             org.apache.http.message; version="${httpasyncclient.version.range}",
@@ -138,6 +138,10 @@
                             org.wso2.carbon.identity.base; version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.wso2.carbon.context; version="${carbon.kernel.package.import.version.range}",
                             org.wso2.carbon.identity.core.util;
+                            version="${carbon.identity.framework.imp.pkg.version.range}",
+                            javax.net.ssl,
+                            javax.net,
+                            org.wso2.carbon.identity.core.*;
                             version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.wso2.carbon.identity.webhook.management.api.*;
                             version="${carbon.identity.framework.imp.pkg.version.range}",
