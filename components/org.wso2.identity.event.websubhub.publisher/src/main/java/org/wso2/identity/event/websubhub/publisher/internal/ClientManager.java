@@ -131,6 +131,8 @@ public class ClientManager {
         try {
             IdentityKeyStoreResolver resolver = IdentityKeyStoreResolver.getInstance();
 
+            //TODO: remove the info logs once verified
+
             // Load custom keystore and truststore
             KeyStore customKeyStore = resolver.getCustomKeyStore(SUPER_TENANT_DOMAIN_NAME, WEBSUBHUB_KEYSTORE_NAME);
             LOG.info("Custom keystore loaded successfully for tenant: " + SUPER_TENANT_DOMAIN_NAME +
