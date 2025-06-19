@@ -29,6 +29,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.MDC;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.carbon.identity.topic.management.api.exception.TopicManagementException;
 import org.wso2.carbon.utils.DiagnosticLog;
 import org.wso2.identity.event.common.publisher.model.EventContext;
@@ -287,10 +288,12 @@ public class WebSubHubAdapterUtil {
      * @param tenantDomain        Tenant domain.
      * @return Hub topic.
      */
-    public static String constructHubTopic(String channelUri, String eventProfileVersion, String tenantDomain) {
+    public static String constructHubTopic(String channelUri, String eventProfileVersion, String tenantDomain)
+            throws WebSubAdapterServerException {
 
         String cleanedChannelUri = channelUri.replaceFirst(REGEX_HTTP_OR_HTTPS_PREFIX, "");
-        return tenantDomain + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + eventProfileVersion +
+        return tenantDomain + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + getOrganizationId(tenantDomain) +
+                WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + eventProfileVersion +
                 WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + cleanedChannelUri;
     }
 
@@ -377,5 +380,25 @@ public class WebSubHubAdapterUtil {
                 topic, operation, responseString);
         log.error(message + ", Response code:" + responseCode);
         throw new WebSubAdapterServerException(message, ERROR_BACKEND_ERROR_FROM_WEBSUB_HUB.getCode());
+    }
+
+    /**
+     * Get the organization id of the tenant.
+     *
+     * @param tenantDomain Tenant domain.
+     * @return Organization id.
+     * @throws WebSubAdapterServerException If an error occurs while resolving the organization id.
+     */
+    private static String getOrganizationId(String tenantDomain) throws WebSubAdapterServerException {
+
+        String orgId;
+        try {
+            orgId = WebSubHubAdapterDataHolder.getInstance().getOrganizationManager()
+                    .resolveOrganizationId(tenantDomain);
+        } catch (OrganizationManagementException e) {
+            throw handleServerException(
+                    WebSubHubAdapterConstants.ErrorMessages.ERROR_RESOLVING_ORG_ID, e, tenantDomain);
+        }
+        return orgId;
     }
 }

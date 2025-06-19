@@ -134,7 +134,12 @@ public class WebSubHubAdapterConstants {
         ERROR_SUBSCRIPTION_ALREADY_EXISTS("65012", "Subscription already exists.",
                 "Subscription already exists for topic: %s and callback: %s."),
         ERROR_SUBSCRIPTION_NOT_FOUND("65013", "Subscription not found.",
-                "No subscription found for topic: %s and callback: %s.");
+                "No subscription found for topic: %s and callback: %s."),
+        ERROR_RESOLVING_ORG_ID("65014", "Error while resolving organization ID.",
+                "Error while resolving organization ID for tenant: %s."),
+        ERROR_CONSTRUCTING_HUB_TOPIC("65015", "Error constructing WebSubHub topic.",
+                "Error constructing WebSubHub topic for channel: %s, event profile version: %s, " +
+                        "tenant domain: %s.");
 
         private static final String WEB_SUB_ADAPTER_ERROR_CODE_PREFIX = "WEBSUB-";
         private final String code;

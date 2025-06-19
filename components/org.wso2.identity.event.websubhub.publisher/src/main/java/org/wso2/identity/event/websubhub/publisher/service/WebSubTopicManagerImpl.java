@@ -31,8 +31,10 @@ import org.wso2.carbon.identity.topic.management.api.exception.TopicManagementEx
 import org.wso2.carbon.identity.topic.management.api.service.TopicManager;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
+import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterServerException;
 import org.wso2.identity.event.websubhub.publisher.internal.ClientManager;
 import org.wso2.identity.event.websubhub.publisher.internal.WebSubHubAdapterDataHolder;
+import org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil;
 import org.wso2.identity.event.websubhub.publisher.util.WebSubHubCorrelationLogUtils;
 
 import java.io.IOException;
@@ -76,7 +78,13 @@ public class WebSubTopicManagerImpl implements TopicManager {
     public String constructTopic(String channelUri, String eventProfileVersion, String tenantDomain)
             throws TopicManagementException {
 
-        return constructHubTopic(channelUri, eventProfileVersion, tenantDomain);
+        try {
+            return constructHubTopic(channelUri, eventProfileVersion, tenantDomain);
+        } catch (WebSubAdapterServerException e) {
+            throw WebSubHubAdapterUtil.handleTopicMgtException(
+                    WebSubHubAdapterConstants.ErrorMessages.ERROR_CONSTRUCTING_HUB_TOPIC, e, channelUri,
+                    eventProfileVersion, tenantDomain);
+        }
     }
 
     @Override

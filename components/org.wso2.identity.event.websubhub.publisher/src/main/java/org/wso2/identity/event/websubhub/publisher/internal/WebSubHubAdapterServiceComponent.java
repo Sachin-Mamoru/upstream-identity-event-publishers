@@ -29,6 +29,7 @@ import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.identity.topic.management.api.service.TopicManager;
 import org.wso2.carbon.identity.webhook.management.api.service.EventSubscriber;
 import org.wso2.identity.event.common.publisher.EventPublisher;
@@ -101,5 +102,20 @@ public class WebSubHubAdapterServiceComponent {
     protected void deactivate(ComponentContext context) {
 
         log.debug("Successfully de-activated the WebSubHub adapter service.");
+    }
+
+    @Reference(name = "identity.organization.management.component",
+            service = OrganizationManager.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetOrganizationManager")
+    protected void setOrganizationManager(OrganizationManager organizationManager) {
+
+        WebSubHubAdapterDataHolder.getInstance().setOrganizationManager(organizationManager);
+    }
+
+    protected void unsetOrganizationManager(OrganizationManager organizationManager) {
+
+        WebSubHubAdapterDataHolder.getInstance().setOrganizationManager(null);
     }
 }
