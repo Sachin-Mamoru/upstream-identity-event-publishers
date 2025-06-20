@@ -302,11 +302,7 @@ public class WebSubHubAdapterUtil {
     }
 
     private static String extractEvent(String channelUri) {
-        // Extracts the event name after '/events/'
-        int eventsIdx = channelUri.indexOf("/events/");
-        if (eventsIdx >= 0) {
-            return channelUri.substring(eventsIdx + "/events/".length());
-        }
+
         int lastSlash = channelUri.lastIndexOf('/');
         if (lastSlash >= 0 && lastSlash < channelUri.length() - 1) {
             return channelUri.substring(lastSlash + 1);
