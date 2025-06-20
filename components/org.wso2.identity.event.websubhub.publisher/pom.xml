@@ -40,6 +40,10 @@
             <artifactId>org.wso2.carbon.identity.application.authentication.framework</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.wso2.carbon.identity.organization.management.core</groupId>
+            <artifactId>org.wso2.carbon.identity.organization.management.service</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.wso2.orbit.org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
         </dependency>
@@ -150,6 +154,8 @@
                             org.json.simple.parser; version="${com.googlecode.json-simple.wso2.version.range}",
                             org.wso2.identity.event.common.publisher;
                             version="${identity.outbound.adapter.version.range}",
+                            org.wso2.carbon.identity.organization.management.service.*;
+                            version="${org.wso2.carbon.identity.organization.management.core.version.range}",
                             org.wso2.identity.event.common.publisher.exception;
                             version="${identity.outbound.adapter.version.range}",
                             org.apache.http.client.utils; version="${httpclient.httpcomponents.wso2.version.range}",

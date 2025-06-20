@@ -60,10 +60,10 @@ public class WebSubEventPublisherImplTest {
     @Mock
     private HttpResponse mockHttpResponse;
 
-    MockedStatic<WebSubHubAdapterDataHolder> mockedStaticDataHolder;
+    private MockedStatic<WebSubHubAdapterDataHolder> mockedStaticDataHolder;
 
     @BeforeClass
-    public void setUp() {
+    public void setUp() throws Exception {
 
         mocks = MockitoAnnotations.openMocks(this);
         adapterService = spy(new WebSubEventPublisherImpl());
@@ -75,6 +75,12 @@ public class WebSubEventPublisherImplTest {
         when(mockDataHolder.getClientManager()).thenReturn(mockClientManager);
         when(mockDataHolder.getAdapterConfiguration()).thenReturn(mockAdapterConfiguration);
         when(mockAdapterConfiguration.getWebSubHubBaseUrl()).thenReturn("http://mock-websub-hub.com");
+
+        // Mock OrganizationManager
+        org.wso2.carbon.identity.organization.management.service.OrganizationManager mockOrgManager =
+                mock(org.wso2.carbon.identity.organization.management.service.OrganizationManager.class);
+        when(mockDataHolder.getOrganizationManager()).thenReturn(mockOrgManager);
+        when(mockOrgManager.resolveOrganizationId(any())).thenReturn("mock-org-id");
     }
 
     @AfterClass

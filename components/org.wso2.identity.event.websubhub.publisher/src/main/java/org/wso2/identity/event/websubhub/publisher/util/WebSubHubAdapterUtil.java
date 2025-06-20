@@ -29,6 +29,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.MDC;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.carbon.identity.topic.management.api.exception.TopicManagementException;
 import org.wso2.carbon.utils.DiagnosticLog;
 import org.wso2.identity.event.common.publisher.model.EventContext;
@@ -53,7 +54,6 @@ import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdap
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.CORRELATION_ID_REQUEST_HEADER;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_MODE;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_TOPIC;
-import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.REGEX_HTTP_OR_HTTPS_PREFIX;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.RESPONSE_FOR_SUCCESSFUL_OPERATION;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.URL_KEY_VALUE_SEPARATOR;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.URL_PARAM_SEPARATOR;
@@ -285,13 +285,29 @@ public class WebSubHubAdapterUtil {
      * @param channelUri          Channel URI.
      * @param eventProfileVersion Event profile version.
      * @param tenantDomain        Tenant domain.
-     * @return Hub topic.
+     * @return Hub topic. Returns topic in the format: {tenantDomain}.{orgid}.schema.{schema}.{version}.event.{event}
      */
-    public static String constructHubTopic(String channelUri, String eventProfileVersion, String tenantDomain) {
+    public static String constructHubTopic(String channelUri, String eventProfileVersion, String tenantDomain)
+            throws WebSubAdapterServerException {
 
-        String cleanedChannelUri = channelUri.replaceFirst(REGEX_HTTP_OR_HTTPS_PREFIX, "");
-        return tenantDomain + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + eventProfileVersion +
-                WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + cleanedChannelUri;
+        String event = extractEvent(channelUri);
+
+        return tenantDomain + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + getOrganizationId(tenantDomain) +
+                WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
+                WebSubHubAdapterConstants.SCHEMA + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
+                WebSubHubAdapterConstants.WSO2_SCHEMA + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
+                eventProfileVersion +
+                WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + WebSubHubAdapterConstants.EVENT +
+                WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + event;
+    }
+
+    private static String extractEvent(String channelUri) {
+
+        int lastSlash = channelUri.lastIndexOf('/');
+        if (lastSlash >= 0 && lastSlash < channelUri.length() - 1) {
+            return channelUri.substring(lastSlash + 1);
+        }
+        return "";
     }
 
     /**
@@ -377,5 +393,25 @@ public class WebSubHubAdapterUtil {
                 topic, operation, responseString);
         log.error(message + ", Response code:" + responseCode);
         throw new WebSubAdapterServerException(message, ERROR_BACKEND_ERROR_FROM_WEBSUB_HUB.getCode());
+    }
+
+    /**
+     * Get the organization id of the tenant.
+     *
+     * @param tenantDomain Tenant domain.
+     * @return Organization id.
+     * @throws WebSubAdapterServerException If an error occurs while resolving the organization id.
+     */
+    private static String getOrganizationId(String tenantDomain) throws WebSubAdapterServerException {
+
+        String orgId;
+        try {
+            orgId = WebSubHubAdapterDataHolder.getInstance().getOrganizationManager()
+                    .resolveOrganizationId(tenantDomain);
+        } catch (OrganizationManagementException e) {
+            throw handleServerException(
+                    WebSubHubAdapterConstants.ErrorMessages.ERROR_RESOLVING_ORG_ID, e, tenantDomain);
+        }
+        return orgId;
     }
 }
