@@ -54,7 +54,6 @@ import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdap
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.CORRELATION_ID_REQUEST_HEADER;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_MODE;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_TOPIC;
-import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.REGEX_HTTP_OR_HTTPS_PREFIX;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.RESPONSE_FOR_SUCCESSFUL_OPERATION;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.URL_KEY_VALUE_SEPARATOR;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.URL_PARAM_SEPARATOR;
@@ -286,15 +285,33 @@ public class WebSubHubAdapterUtil {
      * @param channelUri          Channel URI.
      * @param eventProfileVersion Event profile version.
      * @param tenantDomain        Tenant domain.
-     * @return Hub topic.
+     * @return Hub topic. Returns topic in the format: {tenantDomain}.{orgid}.schema.{schema}.{version}.event.{event}
      */
     public static String constructHubTopic(String channelUri, String eventProfileVersion, String tenantDomain)
             throws WebSubAdapterServerException {
 
-        String cleanedChannelUri = channelUri.replaceFirst(REGEX_HTTP_OR_HTTPS_PREFIX, "");
+        String event = extractEvent(channelUri);
+
         return tenantDomain + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + getOrganizationId(tenantDomain) +
-                WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + eventProfileVersion +
-                WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + cleanedChannelUri;
+                WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
+                WebSubHubAdapterConstants.SCHEMA + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
+                WebSubHubAdapterConstants.WSO2_SCHEMA + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
+                eventProfileVersion +
+                WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + WebSubHubAdapterConstants.EVENT +
+                WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + event;
+    }
+
+    private static String extractEvent(String channelUri) {
+        // Extracts the event name after '/events/'
+        int eventsIdx = channelUri.indexOf("/events/");
+        if (eventsIdx >= 0) {
+            return channelUri.substring(eventsIdx + "/events/".length());
+        }
+        int lastSlash = channelUri.lastIndexOf('/');
+        if (lastSlash >= 0 && lastSlash < channelUri.length() - 1) {
+            return channelUri.substring(lastSlash + 1);
+        }
+        return "";
     }
 
     /**
