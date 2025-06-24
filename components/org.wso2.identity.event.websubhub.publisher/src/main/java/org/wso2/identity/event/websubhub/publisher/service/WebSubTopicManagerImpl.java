@@ -116,7 +116,7 @@ public class WebSubTopicManagerImpl implements TopicManager {
         }
     }
 
-    public static void makeTopicMgtAPICall(String topic, String webSubHubBaseUrl, String operation, String tenantDomain)
+    private void makeTopicMgtAPICall(String topic, String webSubHubBaseUrl, String operation, String tenantDomain)
             throws WebSubAdapterException {
 
         String topicMgtUrl = buildURL(topic, webSubHubBaseUrl, operation);
