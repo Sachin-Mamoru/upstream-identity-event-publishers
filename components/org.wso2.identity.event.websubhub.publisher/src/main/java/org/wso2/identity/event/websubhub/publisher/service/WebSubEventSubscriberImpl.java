@@ -27,7 +27,8 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
-import org.wso2.carbon.identity.webhook.management.api.exception.WebhookMgtException;
+import org.wso2.carbon.identity.webhook.management.api.model.subscription.Subscription;
+import org.wso2.carbon.identity.webhook.management.api.model.subscription.SubscriptionStatus;
 import org.wso2.carbon.identity.webhook.management.api.service.EventSubscriber;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
@@ -54,14 +55,11 @@ import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterU
 
 /**
  * OSGi service for managing WebSubHub subscriptions.
- * TODO: Introduce a proper exception handler for the subscriber with explicit error codes.
  * TODO: Add diagnostic logs
  */
 public class WebSubEventSubscriberImpl implements EventSubscriber {
 
     private static final Log log = LogFactory.getLog(WebSubEventSubscriberImpl.class);
-    private static final int MAX_RETRIES = 2;
-    private static final long RETRY_DELAY_MS = 400;
 
     @Override
     public String getName() {
@@ -70,35 +68,64 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
     }
 
     @Override
-    public void subscribe(List<String> channels, String eventProfileVersion, String endpoint, String secret,
-                          String tenantDomain) throws WebhookMgtException {
+    public List<Subscription> subscribe(List<String> channels, String eventProfileVersion, String endpoint,
+                                        String secret, String tenantDomain) {
 
+        List<Subscription> subscriptions = new ArrayList<>();
         for (String channel : channels) {
             try {
                 makeSubscriptionAPICall(constructHubTopic(channel, eventProfileVersion, tenantDomain),
                         getWebSubBaseURL(), WebSubHubAdapterConstants.Http.SUBSCRIBE, endpoint, secret);
                 log.debug("WebSubHub subscription successful for channel: " + channel +
                         " with endpoint: " + endpoint + " in tenant: " + tenantDomain);
+
+                Subscription subscription = Subscription.builder()
+                        .channelUri(channel)
+                        .status(SubscriptionStatus.SUBSCRIPTION_ACCEPTED)
+                        .build();
+                subscriptions.add(subscription);
             } catch (WebSubAdapterException e) {
-                throw new WebhookMgtException(e.getMessage(), e);
+                log.debug("Error subscribing to channel: " + channel + " with endpoint: " + endpoint +
+                        " in tenant: " + tenantDomain + ". Error: " + e.getMessage(), e);
+                Subscription subscription = Subscription.builder()
+                        .channelUri(channel)
+                        .status(SubscriptionStatus.SUBSCRIPTION_ERROR)
+                        .build();
+                subscriptions.add(subscription);
             }
         }
+        return subscriptions;
     }
 
     @Override
-    public void unsubscribe(List<String> channels, String eventProfileVersion, String endpoint,
-                            String tenantDomain) throws WebhookMgtException {
+    public List<Subscription> unsubscribe(List<String> channels, String eventProfileVersion, String endpoint,
+                                          String tenantDomain) {
 
+        List<Subscription> subscriptions = new ArrayList<>();
         for (String channel : channels) {
             try {
                 makeSubscriptionAPICall(constructHubTopic(channel, eventProfileVersion, tenantDomain),
                         getWebSubBaseURL(), WebSubHubAdapterConstants.Http.UNSUBSCRIBE, endpoint, null);
                 log.debug("WebSubHub unsubscription successful for channel: " + channel +
                         " with endpoint: " + endpoint + " in tenant: " + tenantDomain);
+
+                Subscription subscription = Subscription.builder()
+                        .channelUri(channel)
+                        .status(SubscriptionStatus.UNSUBSCRIPTION_ACCEPTED)
+                        .build();
+                subscriptions.add(subscription);
             } catch (WebSubAdapterException e) {
-                throw new WebhookMgtException(e.getMessage(), e);
+                log.debug("Error unsubscribing from channel: " + channel + " with endpoint: " + endpoint +
+                        " in tenant: " + tenantDomain + ". Error: " + e.getMessage(), e);
+
+                Subscription subscription = Subscription.builder()
+                        .channelUri(channel)
+                        .status(SubscriptionStatus.UNSUBSCRIPTION_ERROR)
+                        .build();
+                subscriptions.add(subscription);
             }
         }
+        return subscriptions;
     }
 
     private void makeSubscriptionAPICall(String topic, String webSubHubBaseUrl, String operation, String callbackUrl,
@@ -106,54 +133,27 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
 
         ClientManager clientManager = WebSubHubAdapterDataHolder.getInstance().getClientManager();
 
-        int attempt = 0;
-        while (true) {
-            HttpPost httpPost = clientManager.createHttpPost(webSubHubBaseUrl, null);
-            httpPost.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+        HttpPost httpPost = clientManager.createHttpPost(webSubHubBaseUrl, null);
+        httpPost.setHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
 
-            List<BasicNameValuePair> params = new ArrayList<>();
-            params.add(new BasicNameValuePair(HUB_CALLBACK, callbackUrl));
-            params.add(new BasicNameValuePair(HUB_MODE, operation));
-            params.add(new BasicNameValuePair(HUB_TOPIC, topic));
-            if (secret != null) {
-                params.add(new BasicNameValuePair(HUB_SECRET, secret));
-            }
-            httpPost.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
+        List<BasicNameValuePair> params = new ArrayList<>();
+        params.add(new BasicNameValuePair(HUB_CALLBACK, callbackUrl));
+        params.add(new BasicNameValuePair(HUB_MODE, operation));
+        params.add(new BasicNameValuePair(HUB_TOPIC, topic));
+        if (secret != null) {
+            params.add(new BasicNameValuePair(HUB_SECRET, secret));
+        }
+        httpPost.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
 
-            WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
-            final long requestStartTime = System.currentTimeMillis();
+        WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
+        final long requestStartTime = System.currentTimeMillis();
 
-            try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.executeSubscriberRequest(
-                    httpPost)) {
-                int responseCode = response.getStatusLine().getStatusCode();
-                if (responseCode >= 500 && attempt < MAX_RETRIES) {
-                    attempt++;
-                    log.debug("Retrying subscription API call, attempt " + attempt + " for topic: " + topic);
-                    try {
-                        Thread.sleep(RETRY_DELAY_MS);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, ie);
-                    }
-                    continue;
-                }
-                handleSubscriptionResponse(response, httpPost, topic, operation, requestStartTime);
-                break;
-            } catch (IOException | WebSubAdapterException e) {
-                log.debug("Error subscribing to topic: " + topic + ". Error: " + e.getMessage(), e);
-                if (attempt < MAX_RETRIES) {
-                    attempt++;
-                    log.debug("Retrying subscription API call, attempt " + attempt + " for topic: " + topic);
-                    try {
-                        Thread.sleep(RETRY_DELAY_MS);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, ie);
-                    }
-                    continue;
-                }
-                throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, e);
-            }
+        try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.executeSubscriberRequest(
+                httpPost)) {
+            handleSubscriptionResponse(response, httpPost, topic, operation, requestStartTime);
+        } catch (IOException | WebSubAdapterException e) {
+            log.debug("Error subscribing to topic: " + topic + ". Error: " + e.getMessage(), e);
+            throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, e);
         }
     }
 
