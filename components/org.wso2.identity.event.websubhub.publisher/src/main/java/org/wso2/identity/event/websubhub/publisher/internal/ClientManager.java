@@ -116,10 +116,7 @@ public class ClientManager {
                     syncConnectionManager.getDefaultMaxPerRoute());
 
             // Initialize MTLS HttpClient
-            if (WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration()
-                    .isMtlsEnabled()) {
-                mtlsHttpClient = getMTLSClient();
-            }
+            mtlsHttpClient = getMTLSClient();
         } catch (IOException e) {
             throw WebSubHubAdapterUtil.handleServerException(
                     WebSubHubAdapterConstants.ErrorMessages.ERROR_GETTING_ASYNC_CLIENT, e);
