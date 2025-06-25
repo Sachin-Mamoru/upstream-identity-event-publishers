@@ -216,7 +216,7 @@ public class ClientManager {
                 .isMtlsEnabled()) {
             return mtlsHttpClient;
         }
-        return getHttpClient();
+        return mtlsHttpClient;
     }
 
     private RequestConfig createRequestConfig() {
