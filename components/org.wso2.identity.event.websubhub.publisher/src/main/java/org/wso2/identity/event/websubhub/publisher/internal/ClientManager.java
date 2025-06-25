@@ -20,12 +20,15 @@ package org.wso2.identity.event.websubhub.publisher.internal;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -52,15 +55,17 @@ import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 
 import static org.apache.http.HttpHeaders.ACCEPT;
 import static org.apache.http.HttpHeaders.CONTENT_TYPE;
@@ -77,7 +82,7 @@ public class ClientManager {
     private static final Log LOG = LogFactory.getLog(ClientManager.class);
     private final CloseableHttpAsyncClient httpAsyncClient;
     private final CloseableHttpClient httpClient;
-    private CloseableHttpClient mtlsHttpClient = null;
+    private final OkHttpClient okHttpClient;
 
     public ClientManager() throws WebSubAdapterException {
 
@@ -116,79 +121,109 @@ public class ClientManager {
                     syncConnectionManager.getDefaultMaxPerRoute());
 
             // Initialize MTLS HttpClient
-            if (WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration()
-                    .isMtlsEnabled()) {
-                mtlsHttpClient = getMTLSClient();
-            }
+            okHttpClient = getOkHttpClientForMTLS();
         } catch (IOException e) {
             throw WebSubHubAdapterUtil.handleServerException(
                     WebSubHubAdapterConstants.ErrorMessages.ERROR_GETTING_ASYNC_CLIENT, e);
         }
     }
 
-    private CloseableHttpClient getMTLSClient() throws WebSubAdapterException {
+    public OkHttpClient getOkHttpClient() {
+
+        return okHttpClient;
+    }
+
+    public Response makeHTTPPostForMTLS(Request request) {
 
         try {
+            try (Response response = getOkHttpClient().newCall(request).execute()) {
+                return response;
+            }
+        } catch (IOException e) {
+            LOG.error("Error occurred while making HTTP POST request for MTLS: " + e.getMessage(), e);
+        }
+        return null;
+    }
+
+    private OkHttpClient getOkHttpClientForMTLS() {
+
+        try {
+            long callTimeOut = Long.parseLong("10000");
+            long connectTimeOut = WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration()
+                    .getHTTPConnectionTimeout();
+            long readTimeOut = WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().getHttpReadTimeout();
+            long writeTimeOut = Long.parseLong("5000");
+
             IdentityKeyStoreResolver resolver = IdentityKeyStoreResolver.getInstance();
 
-            //TODO: remove the info logs once verified
+            LOG.info("Initializing mTLS OkHttpClient...");
 
-            // Load custom keystore and truststore
+            // Load custom keystore
             KeyStore customKeyStore = resolver.getCustomKeyStore(SUPER_TENANT_DOMAIN_NAME, WEBSUBHUB_KEYSTORE_NAME);
-            LOG.info("Custom keystore loaded successfully for tenant: " + SUPER_TENANT_DOMAIN_NAME +
-                    ", keystore: " + WEBSUBHUB_KEYSTORE_NAME + ", aliases: " + customKeyStore.size());
+            LOG.info("Custom keystore loaded for tenant: {}, alias count: {}" +
+                    SUPER_TENANT_DOMAIN_NAME + customKeyStore.size());
 
+            // Load truststore
             KeyStore trustStore = resolver.getTrustStore(SUPER_TENANT_DOMAIN_NAME);
-            LOG.info("Truststore loaded successfully for tenant: " + SUPER_TENANT_DOMAIN_NAME +
-                    ", aliases: " + trustStore.size());
+            LOG.info("Truststore loaded for tenant: {}, alias count: {}" +
+                    SUPER_TENANT_DOMAIN_NAME + trustStore.size());
 
             // Initialize KeyManagerFactory with custom keystore
             KeyManagerFactory keyManagerFactory =
                     KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            keyManagerFactory.init(customKeyStore, resolver.getCustomKeyStoreConfig(
+            String keyPassword = resolver.getCustomKeyStoreConfig(
                     IdentityKeyStoreResolverUtil.buildCustomKeyStoreName(WEBSUBHUB_KEYSTORE_NAME),
-                    RegistryResources.SecurityManagement.CustomKeyStore.PROP_KEY_PASSWORD).toCharArray());
-            LOG.info("KeyManagerFactory initialized using the custom keystore");
+                    RegistryResources.SecurityManagement.CustomKeyStore.PROP_KEY_PASSWORD);
+
+            keyManagerFactory.init(customKeyStore, keyPassword.toCharArray());
+            LOG.info("KeyManagerFactory initialized with algorithm: {}" + KeyManagerFactory.getDefaultAlgorithm());
 
             // Initialize TrustManagerFactory with truststore
             TrustManagerFactory trustManagerFactory =
                     TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustManagerFactory.init(trustStore);
-            LOG.info("TrustManagerFactory initialized using the truststore");
+            LOG.info("TrustManagerFactory initialized with algorithm: {}" +
+                    TrustManagerFactory.getDefaultAlgorithm());
 
             // Build SSLContext
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(),
-                    new SecureRandom());
-            LOG.info("SSLContext initialized successfully for MTLS");
+                    new java.security.SecureRandom());
+            LOG.info("SSLContext successfully initialized with TLS protocol.");
 
-            // Disable hostname verification
-            // TODO: Enable once the hostname verification is properly configured
-            HostnameVerifier allowAllHosts = (hostname, session) -> {
-                LOG.warn("Hostname verification disabled: accepted hostname = " + hostname);
-                return true;
-            };
+            // Validate TrustManager
+            TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
+            if (ArrayUtils.isEmpty(trustManagers)) {
+                LOG.info("Trust Managers array is empty.");
+            } else if (!(trustManagers[0] instanceof X509TrustManager)) {
+                LOG.info("Trust Manager is not an instance of X509TrustManager.");
+            } else {
+                LOG.info("Using X509TrustManager implementation: {}" + trustManagers[0].getClass().getName());
+            }
 
-            SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(
-                    sslContext,
-                    new String[]{"TLSv1.2"},
-                    null,
-                    allowAllHosts);  // ← HostnameVerifier overridden
+            SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
 
-            LOG.info("SSLConnectionSocketFactory created with TLSv1.2 and hostname verification disabled");
-
-            return HttpClients.custom()
-                    .setSSLSocketFactory(sslSocketFactory)
-                    .disableConnectionState()
-                    .disableCookieManagement()
+            OkHttpClient okHttpClientBuilder = new OkHttpClient.Builder()
+                    .sslSocketFactory(sslSocketFactory, (X509TrustManager) trustManagers[0])
+                    .callTimeout(callTimeOut, TimeUnit.MILLISECONDS)
+                    .connectTimeout(connectTimeOut, TimeUnit.MILLISECONDS)
+                    .readTimeout(readTimeOut, TimeUnit.MILLISECONDS)
+                    .writeTimeout(writeTimeOut, TimeUnit.MILLISECONDS)
+                    .hostnameVerifier((hostname, session) -> {
+                        LOG.info("Bypassing hostname verification for: {}" + hostname);
+                        return true;
+                    })
                     .build();
 
-        } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException |
-                 UnrecoverableKeyException | IdentityKeyStoreResolverException e) {
-            LOG.error("Error while initializing MTLS client", e);
-            throw WebSubHubAdapterUtil.handleServerException(
-                    WebSubHubAdapterConstants.ErrorMessages.ERROR_CREATING_SSL_CONTEXT, e);
+            LOG.info("mTLS-enabled OkHttpClient successfully built.");
+            return okHttpClientBuilder;
+
+        } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException |
+                 IdentityKeyStoreResolverException | UnrecoverableKeyException e) {
+            LOG.error("Error occurred while creating OkHttpClient for MTLS: " + e.getMessage(), e);
         }
+
+        return null;
     }
 
     public CloseableHttpAsyncClient getHttpAsyncClient() {
@@ -210,13 +245,9 @@ public class ClientManager {
      *
      * @return CloseableHttpClient instance.
      */
-    public CloseableHttpClient getEffectiveHttpClient() {
+    public OkHttpClient getEffectiveHttpClient() {
 
-        if (WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration()
-                .isMtlsEnabled()) {
-            return mtlsHttpClient;
-        }
-        return mtlsHttpClient;
+        return okHttpClient;
     }
 
     private RequestConfig createRequestConfig() {
@@ -346,6 +377,6 @@ public class ClientManager {
      */
     public HttpResponse executeSubscriberRequest(HttpPost httpPost) throws IOException, WebSubAdapterException {
 
-        return getEffectiveHttpClient().execute(httpPost);
+        return httpClient.execute(httpPost);
     }
 }

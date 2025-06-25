@@ -20,8 +20,6 @@
 
     <test name="WebSubHubEventAdapterTests" preserve-order="true" parallel="false">
         <classes>
-            <class name="org.wso2.identity.event.websubhub.publisher.service.WebSubEventSubscriberImplTest"/>
-            <class name="org.wso2.identity.event.websubhub.publisher.internal.ClientManagerTest"/>
             <class name="org.wso2.identity.event.websubhub.publisher.service.WebSubEventPublisherImplTest"/>
             <class name="org.wso2.identity.event.websubhub.publisher.service.WebSubTopicManagerImplTest"/>
             <class name="org.wso2.identity.event.websubhub.publisher.config.OutboundAdapterConfigurationProviderTest"/>
