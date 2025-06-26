@@ -116,6 +116,10 @@ public class ClientManager {
                     syncConnectionManager.getDefaultMaxPerRoute());
 
             // Initialize MTLS HttpClient
+            if (WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration()
+                    .isMtlsEnabled()) {
+                mtlsHttpClient = getMTLSClient();
+            }
         } catch (IOException e) {
             throw WebSubHubAdapterUtil.handleServerException(
                     WebSubHubAdapterConstants.ErrorMessages.ERROR_GETTING_ASYNC_CLIENT, e);
@@ -206,14 +210,13 @@ public class ClientManager {
      *
      * @return CloseableHttpClient instance.
      */
-    public CloseableHttpClient getEffectiveHttpClient() throws WebSubAdapterException {
+    public CloseableHttpClient getEffectiveHttpClient() {
 
-        mtlsHttpClient = getMTLSClient();
         if (WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration()
                 .isMtlsEnabled()) {
             return mtlsHttpClient;
         }
-        return mtlsHttpClient;
+        return getHttpClient();
     }
 
     private RequestConfig createRequestConfig() {
