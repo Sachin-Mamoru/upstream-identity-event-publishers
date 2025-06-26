@@ -171,8 +171,10 @@ public class WebSubTopicManagerImpl implements TopicManager {
                     if (entity != null) {
                         responseString = EntityUtils.toString(entity, StandardCharsets.UTF_8);
                     }
-                    log.warn(String.format(ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB.getDescription(),
-                            topic, operation, responseString));
+                    if (log.isDebugEnabled()) {
+                        log.debug(String.format(ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB.getDescription(),
+                                topic, operation, responseString));
+                    }
                 } else {
                     WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(httpPost, requestStartTime,
                             WebSubHubCorrelationLogUtils.RequestStatus.CANCELLED.getStatus(),
