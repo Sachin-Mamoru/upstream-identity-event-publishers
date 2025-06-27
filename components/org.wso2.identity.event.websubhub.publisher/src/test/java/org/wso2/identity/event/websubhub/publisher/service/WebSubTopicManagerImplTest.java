@@ -158,25 +158,17 @@ public class WebSubTopicManagerImplTest {
     @Test
     public void testConstructTopic() throws TopicManagementException {
 
-        String topic = webSubTopicManager.constructTopic("channel-uri", "1.0",
-                "carbon.super");
-
+        String topic = webSubTopicManager.constructTopic("channel-uri", "1.0", "carbon.super");
         assertEquals(topic, "carbon.super.1.0.channel-uri");
-
         mockedStaticUtil.verify(() ->
-                WebSubHubAdapterUtil.constructHubTopic("channel-uri", "1.0",
-                        "carbon.super"));
+                WebSubHubAdapterUtil.constructHubTopic("channel-uri", "1.0", "carbon.super"));
     }
 
     @Test
     public void testRegisterTopicSuccess() throws TopicManagementException, WebSubAdapterException, IOException {
-        // Setup success response
+
         when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
-
-        // Execute the method
         webSubTopicManager.registerTopic("test-topic", "carbon.super");
-
-        // Verify interactions
         verify(mockClientManager).createHttpPost(anyString(), any());
         verify(mockClientManager).execute(any(HttpPost.class));
     }
@@ -185,16 +177,12 @@ public class WebSubTopicManagerImplTest {
     public void testDeregisterTopicSuccess() throws TopicManagementException, WebSubAdapterException, IOException {
 
         when(mockStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
-
         webSubTopicManager.deregisterTopic("test-topic", "carbon.super");
-
         verify(mockClientManager).createHttpPost(anyString(), any());
         verify(mockClientManager).execute(any(HttpPost.class));
-
-        mockedStaticCorrelationLogUtils.verify(() ->
-                WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(any(HttpPost.class)));
-        mockedStaticUtil.verify(() ->
-                WebSubHubAdapterUtil.handleSuccessfulOperation(any(), eq("test-topic"), eq("deregister")));
+        mockedStaticUtil.verify(() -> WebSubHubAdapterUtil.getWebSubBaseURL());
+        mockedStaticUtil.verify(
+                () -> WebSubHubAdapterUtil.buildURL("test-topic", "https://hub.example.com", "deregister"));
     }
 
     @Test(expectedExceptions = TopicManagementException.class)
@@ -226,7 +214,6 @@ public class WebSubTopicManagerImplTest {
                         ))
                 .thenReturn(new TopicManagementException("Error", "Description", "CODE"));
 
-        // Execute the method - should throw exception
         webSubTopicManager.registerTopic("test-topic", "carbon.super");
     }
 
