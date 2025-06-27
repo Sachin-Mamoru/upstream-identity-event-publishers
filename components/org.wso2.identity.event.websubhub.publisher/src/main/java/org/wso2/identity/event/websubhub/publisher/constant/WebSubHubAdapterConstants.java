@@ -69,7 +69,7 @@ public class WebSubHubAdapterConstants {
         public static final Integer DEFAULT_HTTP_MAX_CONNECTIONS_PER_ROUTE = 2;
         public static final String SUBSCRIBE = "subscribe";
         public static final String UNSUBSCRIBE = "unsubscribe";
-        public static final String WEBSUBHUB_KEYSTORE_NAME = "websubhub-dev-client.p12";
+        public static final String WEBSUBHUB_KEYSTORE_NAME = "websubhub-dev-client.jks";
 
         private Http() {
 

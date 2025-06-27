@@ -29,9 +29,9 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.webhook.management.api.exception.WebhookMgtException;
-import org.wso2.carbon.identity.webhook.management.api.model.Webhook;
 import org.wso2.carbon.identity.webhook.management.api.model.Subscription;
 import org.wso2.carbon.identity.webhook.management.api.model.SubscriptionStatus;
+import org.wso2.carbon.identity.webhook.management.api.model.Webhook;
 import org.wso2.carbon.identity.webhook.management.api.service.EventSubscriber;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
@@ -101,7 +101,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
                 }
             }
         } catch (WebhookMgtException e) {
-            log.debug("Error retrieving events from webhook: " + webhook.getUuid() +
+            log.warn("Error retrieving events from webhook: " + webhook.getId() +
                     " in tenant: " + tenantDomain + ". Error: " + e.getMessage(), e);
         }
         return subscriptions;
@@ -140,7 +140,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
                 }
             }
         } catch (WebhookMgtException e) {
-            log.debug("Error retrieving events from webhook: " + webhook.getUuid() +
+            log.warn("Error retrieving events from webhook: " + webhook.getId() +
                     " in tenant: " + IdentityTenantUtil.getTenantDomain(tenantId) +
                     ". Error: " + e.getMessage(), e);
         }
