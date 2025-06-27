@@ -63,7 +63,6 @@ import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterU
 public class WebSubEventSubscriberImpl implements EventSubscriber {
 
     private static final Log log = LogFactory.getLog(WebSubEventSubscriberImpl.class);
-    private static final String eventProfileVersion = "v1";
 
     @Override
     public String getName() {
@@ -72,17 +71,17 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
     }
 
     @Override
-    public List<Subscription> subscribe(Webhook webhook) {
+    public List<Subscription> subscribe(Webhook webhook, int tenantId) {
 
         List<Subscription> subscriptions = new ArrayList<>();
-        String tenantDomain = IdentityTenantUtil.getTenantDomain(webhook.getTenantId());
+        String tenantDomain = IdentityTenantUtil.getTenantDomain(tenantId);
         try {
             for (Subscription eventSubscription : webhook.getEventsSubscribed()) {
                 try {
                     makeSubscriptionAPICall(
-                            constructHubTopic(eventSubscription.getChannelUri(), eventProfileVersion, tenantDomain),
-                            getWebSubBaseURL(), WebSubHubAdapterConstants.Http.SUBSCRIBE, webhook.getEndpoint(),
-                            webhook.getSecret());
+                            constructHubTopic(eventSubscription.getChannelUri(), webhook.getEventProfileVersion(),
+                                    tenantDomain), getWebSubBaseURL(), WebSubHubAdapterConstants.Http.SUBSCRIBE,
+                            webhook.getEndpoint(), webhook.getSecret());
                     log.debug("WebSubHub subscription successful for channel: " + eventSubscription.getChannelUri() +
                             " with endpoint: " + webhook.getEndpoint() + " in tenant: " + tenantDomain);
 
@@ -109,17 +108,17 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
     }
 
     @Override
-    public List<Subscription> unsubscribe(Webhook webhook) {
+    public List<Subscription> unsubscribe(Webhook webhook, int tenantId) {
 
         List<Subscription> subscriptions = new ArrayList<>();
-        String tenantDomain = IdentityTenantUtil.getTenantDomain(webhook.getTenantId());
+        String tenantDomain = IdentityTenantUtil.getTenantDomain(tenantId);
         try {
             for (Subscription eventSubscription : webhook.getEventsSubscribed()) {
                 try {
                     makeSubscriptionAPICall(
-                            constructHubTopic(eventSubscription.getChannelUri(), eventProfileVersion, tenantDomain),
-                            getWebSubBaseURL(), WebSubHubAdapterConstants.Http.UNSUBSCRIBE, webhook.getEndpoint(),
-                            null);
+                            constructHubTopic(eventSubscription.getChannelUri(), webhook.getEventProfileVersion(),
+                                    tenantDomain), getWebSubBaseURL(), WebSubHubAdapterConstants.Http.UNSUBSCRIBE,
+                            webhook.getEndpoint(), null);
                     log.debug("WebSubHub unsubscription successful for channel: " + eventSubscription.getChannelUri() +
                             " with endpoint: " + webhook.getEndpoint() + " in tenant: " + tenantDomain);
 
@@ -142,7 +141,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
             }
         } catch (WebhookMgtException e) {
             log.debug("Error retrieving events from webhook: " + webhook.getUuid() +
-                    " in tenant: " + IdentityTenantUtil.getTenantDomain(webhook.getTenantId()) +
+                    " in tenant: " + IdentityTenantUtil.getTenantDomain(tenantId) +
                     ". Error: " + e.getMessage(), e);
         }
         return subscriptions;
