@@ -27,10 +27,10 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.identity.subscription.management.api.model.ChannelSubscriptionRequest;
 import org.wso2.carbon.identity.subscription.management.api.model.Subscription;
 import org.wso2.carbon.identity.subscription.management.api.model.SubscriptionStatus;
+import org.wso2.carbon.identity.subscription.management.api.model.WebhookSubscriptionRequest;
+import org.wso2.carbon.identity.subscription.management.api.model.WebhookUnsubscriptionRequest;
 import org.wso2.carbon.identity.subscription.management.api.service.EventSubscriber;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
@@ -64,38 +64,37 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
     private static final Log log = LogFactory.getLog(WebSubEventSubscriberImpl.class);
 
     @Override
-    public String getName() {
+    public String getAssociatedAdaptor() {
 
         return WebSubHubAdapterConstants.WEB_SUB_HUB_ADAPTER_NAME;
     }
 
     @Override
-    public List<Subscription> subscribe(ChannelSubscriptionRequest channelSubscriptionRequest, int tenantId) {
+    public List<Subscription> subscribe(WebhookSubscriptionRequest webhookSubscriptionRequest, String tenantDomain) {
 
         List<Subscription> subscriptions = new ArrayList<>();
-        String tenantDomain = IdentityTenantUtil.getTenantDomain(tenantId);
-        for (Subscription eventSubscription : channelSubscriptionRequest.getEventsSubscribed()) {
+        for (String channelToSubscribe : webhookSubscriptionRequest.getChannelsToSubscribe()) {
             try {
                 makeSubscriptionAPICall(
-                        constructHubTopic(eventSubscription.getChannelUri(),
-                                channelSubscriptionRequest.getEventProfileVersion(),
+                        constructHubTopic(channelToSubscribe,
+                                webhookSubscriptionRequest.getEventProfileVersion(),
                                 tenantDomain), getWebSubBaseURL(), WebSubHubAdapterConstants.Http.SUBSCRIBE,
-                        channelSubscriptionRequest.getEndpoint(), channelSubscriptionRequest.getSecret());
-                log.debug("WebSubHub subscription successful for channel: " + eventSubscription.getChannelUri() +
-                        " with endpoint: " + channelSubscriptionRequest.getEndpoint() + " in tenant: " +
+                        webhookSubscriptionRequest.getEndpoint(), webhookSubscriptionRequest.getSecret());
+                log.debug("WebSubHub subscription successful for channel: " + channelToSubscribe +
+                        " with endpoint: " + webhookSubscriptionRequest.getEndpoint() + " in tenant: " +
                         tenantDomain);
 
                 Subscription subscription = Subscription.builder()
-                        .channelUri(eventSubscription.getChannelUri())
+                        .channelUri(channelToSubscribe)
                         .status(SubscriptionStatus.SUBSCRIPTION_ACCEPTED)
                         .build();
                 subscriptions.add(subscription);
             } catch (WebSubAdapterException e) {
-                log.debug("Error subscribing to channel" + eventSubscription.getChannelUri() + " with endpoint: " +
-                        channelSubscriptionRequest.getEndpoint() + " in tenant: " + tenantDomain + ". Error: " +
+                log.debug("Error subscribing to channel" + channelToSubscribe + " with endpoint: " +
+                        webhookSubscriptionRequest.getEndpoint() + " in tenant: " + tenantDomain + ". Error: " +
                         e.getMessage(), e);
                 Subscription subscription = Subscription.builder()
-                        .channelUri(eventSubscription.getChannelUri())
+                        .channelUri(channelToSubscribe)
                         .status(SubscriptionStatus.SUBSCRIPTION_ERROR)
                         .build();
                 subscriptions.add(subscription);
@@ -105,31 +104,32 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
     }
 
     @Override
-    public List<Subscription> unsubscribe(ChannelSubscriptionRequest channelSubscriptionRequest, int tenantId) {
+    public List<Subscription> unsubscribe(WebhookUnsubscriptionRequest webhookUnsubscriptionRequest,
+                                          String tenantDomain) {
 
         List<Subscription> unsubscriptions = new ArrayList<>();
-        String tenantDomain = IdentityTenantUtil.getTenantDomain(tenantId);
-        for (Subscription eventSubscription : channelSubscriptionRequest.getEventsSubscribed()) {
+        for (String channelToUnsubscribe : webhookUnsubscriptionRequest.getChannelToUnsubscribe()) {
             try {
                 makeSubscriptionAPICall(
-                        constructHubTopic(eventSubscription.getChannelUri(),
-                                channelSubscriptionRequest.getEventProfileVersion(),
+                        constructHubTopic(channelToUnsubscribe,
+                                webhookUnsubscriptionRequest.getEventProfileVersion(),
                                 tenantDomain), getWebSubBaseURL(), WebSubHubAdapterConstants.Http.UNSUBSCRIBE,
-                        channelSubscriptionRequest.getEndpoint(), null);
-                log.debug("WebSubHub unsubscription successful for channel: " + eventSubscription.getChannelUri() +
-                        " with endpoint: " + channelSubscriptionRequest.getEndpoint() + " in tenant: " + tenantDomain);
+                        webhookUnsubscriptionRequest.getEndpoint(), null);
+                log.debug("WebSubHub unsubscription successful for channel: " + channelToUnsubscribe +
+                        " with endpoint: " + webhookUnsubscriptionRequest.getEndpoint() + " in tenant: " +
+                        tenantDomain);
 
                 Subscription unsubscription = Subscription.builder()
-                        .channelUri(eventSubscription.getChannelUri())
+                        .channelUri(channelToUnsubscribe)
                         .status(SubscriptionStatus.UNSUBSCRIPTION_ACCEPTED)
                         .build();
                 unsubscriptions.add(unsubscription);
             } catch (WebSubAdapterException e) {
-                log.debug("Error unsubscribing from channel: " + eventSubscription.getChannelUri() +
-                        " with endpoint: " + channelSubscriptionRequest.getEndpoint() + " in tenant: " +
+                log.debug("Error unsubscribing from channel: " + channelToUnsubscribe +
+                        " with endpoint: " + webhookUnsubscriptionRequest.getEndpoint() + " in tenant: " +
                         tenantDomain + ". Error: " + e.getMessage(), e);
                 Subscription unsubscription = Subscription.builder()
-                        .channelUri(eventSubscription.getChannelUri())
+                        .channelUri(channelToUnsubscribe)
                         .status(SubscriptionStatus.UNSUBSCRIPTION_ERROR)
                         .build();
                 unsubscriptions.add(unsubscription);
