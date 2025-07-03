@@ -61,7 +61,7 @@
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity.framework</groupId>
-            <artifactId>org.wso2.carbon.identity.webhook.management</artifactId>
+            <artifactId>org.wso2.carbon.identity.subscription.management</artifactId>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity.framework</groupId>
@@ -147,7 +147,7 @@
                             javax.net,
                             org.wso2.carbon.identity.core.*;
                             version="${carbon.identity.framework.imp.pkg.version.range}",
-                            org.wso2.carbon.identity.webhook.management.api.*;
+                            org.wso2.carbon.identity.subscription.management.api.*;
                             version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.wso2.carbon.identity.topic.management.api.*;
                             version="${carbon.identity.framework.imp.pkg.version.range}",
