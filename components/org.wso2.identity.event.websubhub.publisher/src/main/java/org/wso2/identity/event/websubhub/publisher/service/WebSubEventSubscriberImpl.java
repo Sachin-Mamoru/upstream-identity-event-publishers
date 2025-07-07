@@ -76,7 +76,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
         for (String channelToSubscribe : webhookSubscriptionRequest.getChannelsToSubscribe()) {
             try {
                 makeSubscriptionAPICall(
-                        constructHubTopic(channelToSubscribe,
+                        constructHubTopic(channelToSubscribe, webhookSubscriptionRequest.getEventProfileName(),
                                 webhookSubscriptionRequest.getEventProfileVersion(),
                                 tenantDomain), getWebSubBaseURL(), WebSubHubAdapterConstants.Http.SUBSCRIBE,
                         webhookSubscriptionRequest.getEndpoint(), webhookSubscriptionRequest.getSecret());
@@ -111,7 +111,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
         for (String channelToUnsubscribe : webhookUnsubscriptionRequest.getChannelToUnsubscribe()) {
             try {
                 makeSubscriptionAPICall(
-                        constructHubTopic(channelToUnsubscribe,
+                        constructHubTopic(channelToUnsubscribe, webhookUnsubscriptionRequest.getEventProfileName(),
                                 webhookUnsubscriptionRequest.getEventProfileVersion(),
                                 tenantDomain), getWebSubBaseURL(), WebSubHubAdapterConstants.Http.UNSUBSCRIBE,
                         webhookUnsubscriptionRequest.getEndpoint(), null);

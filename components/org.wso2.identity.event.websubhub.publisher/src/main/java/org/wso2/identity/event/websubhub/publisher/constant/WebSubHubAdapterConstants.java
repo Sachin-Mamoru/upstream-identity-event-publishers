@@ -24,7 +24,6 @@ package org.wso2.identity.event.websubhub.publisher.constant;
 public class WebSubHubAdapterConstants {
 
     public static final String WEB_SUB_HUB_ADAPTER_NAME = "webSubHubAdapter";
-    public static final String WSO2_SCHEMA = "wso2";
     public static final String SCHEMA = "schema";
     public static final String EVENT = "event";
 

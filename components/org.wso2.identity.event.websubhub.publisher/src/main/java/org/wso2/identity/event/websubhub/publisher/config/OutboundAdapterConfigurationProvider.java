@@ -20,7 +20,7 @@ package org.wso2.identity.event.websubhub.publisher.config;
 
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.identity.event.common.publisher.exception.AdapterConfigurationException;
+import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,7 +33,11 @@ import java.nio.file.StandardOpenOption;
 import java.util.Properties;
 
 import static java.util.Objects.isNull;
+import static org.wso2.carbon.identity.event.publisher.api.constant.ErrorMessage.CONFIG_FILE_NOT_FOUND;
+import static org.wso2.carbon.identity.event.publisher.api.constant.ErrorMessage.CONFIG_FILE_PERMISSION_DENIED;
+import static org.wso2.carbon.identity.event.publisher.api.constant.ErrorMessage.CONFIG_FILE_RETRIEVAL_ERROR;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Config.CONFIG_FILE_NAME;
+import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleServerException;
 
 /**
  * Class to build the output adapter configurations.
@@ -43,12 +47,12 @@ public class OutboundAdapterConfigurationProvider {
     private final Properties adapterProperties;
     private static OutboundAdapterConfigurationProvider instance;
 
-    private OutboundAdapterConfigurationProvider() throws AdapterConfigurationException {
+    private OutboundAdapterConfigurationProvider() throws EventPublisherException {
 
         adapterProperties = this.loadProperties();
     }
 
-    public static OutboundAdapterConfigurationProvider getInstance() throws AdapterConfigurationException {
+    public static OutboundAdapterConfigurationProvider getInstance() throws EventPublisherException {
 
         if (instance == null) {
             instance = new OutboundAdapterConfigurationProvider();
@@ -57,23 +61,23 @@ public class OutboundAdapterConfigurationProvider {
     }
 
     @SuppressWarnings("PATH_TRAVERSAL_IN")
-    private Properties loadProperties() throws AdapterConfigurationException {
+    private Properties loadProperties() throws EventPublisherException {
 
         Properties properties = new Properties();
 
         Path path = Paths.get(IdentityUtil.getIdentityConfigDirPath(), CONFIG_FILE_NAME);
 
         if (Files.notExists(path)) {
-            throw new AdapterConfigurationException(CONFIG_FILE_NAME + " configuration file doesn't exist.");
+            throw handleServerException(CONFIG_FILE_NOT_FOUND, CONFIG_FILE_NAME);
         }
 
         try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ);
              InputStream inputStream = Channels.newInputStream(channel)) {
             properties.load(inputStream);
         } catch (IOException e) {
-            throw new AdapterConfigurationException("Error while retrieving the configuration file.", e);
+            throw handleServerException(CONFIG_FILE_RETRIEVAL_ERROR, e, CONFIG_FILE_NAME);
         } catch (SecurityException e) {
-            throw new AdapterConfigurationException("Permission denied while accessing the configuration file.", e);
+            throw handleServerException(CONFIG_FILE_PERMISSION_DENIED, e, CONFIG_FILE_NAME);
         }
 
         return properties;

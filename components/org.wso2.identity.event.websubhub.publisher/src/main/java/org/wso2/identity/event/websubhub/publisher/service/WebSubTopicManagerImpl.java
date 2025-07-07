@@ -72,17 +72,18 @@ public class WebSubTopicManagerImpl implements TopicManager {
     private static final long RETRY_DELAY_MS = 400;
 
     @Override
-    public String getName() {
+    public String getAssociatedAdaptor() {
 
         return WebSubHubAdapterConstants.WEB_SUB_HUB_ADAPTER_NAME;
     }
 
     @Override
-    public String constructTopic(String channelUri, String eventProfileVersion, String tenantDomain)
+    public String constructTopic(String channelUri, String eventProfileName, String eventProfileVersion,
+                                 String tenantDomain)
             throws TopicManagementException {
 
         try {
-            return constructHubTopic(channelUri, eventProfileVersion, tenantDomain);
+            return constructHubTopic(channelUri, eventProfileName, eventProfileVersion, tenantDomain);
         } catch (WebSubAdapterServerException e) {
             throw WebSubHubAdapterUtil.handleTopicMgtException(
                     WebSubHubAdapterConstants.ErrorMessages.ERROR_CONSTRUCTING_HUB_TOPIC, e, channelUri,

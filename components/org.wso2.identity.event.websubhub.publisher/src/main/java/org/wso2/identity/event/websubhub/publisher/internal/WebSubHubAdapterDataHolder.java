@@ -20,6 +20,7 @@ package org.wso2.identity.event.websubhub.publisher.internal;
 
 import com.nimbusds.jose.util.DefaultResourceRetriever;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
+import org.wso2.carbon.identity.topic.management.api.service.TopicManagementService;
 import org.wso2.identity.event.websubhub.publisher.config.WebSubAdapterConfiguration;
 
 import java.security.KeyStore;
@@ -35,6 +36,7 @@ public class WebSubHubAdapterDataHolder {
     private WebSubAdapterConfiguration adapterConfiguration;
     private DefaultResourceRetriever resourceRetriever;
     private OrganizationManager organizationManager;
+    private TopicManagementService topicManagementService;
 
     private WebSubHubAdapterDataHolder() {
 
@@ -93,5 +95,25 @@ public class WebSubHubAdapterDataHolder {
     public void setOrganizationManager(OrganizationManager organizationManager) {
 
         this.organizationManager = organizationManager;
+    }
+
+    /**
+     * Get the topic management service.
+     *
+     * @return Topic management service.
+     */
+    public TopicManagementService getTopicManagementService() {
+
+        return topicManagementService;
+    }
+
+    /**
+     * Set the topic management service.
+     *
+     * @param topicManagementService Topic management service.
+     */
+    public void setTopicManagementService(TopicManagementService topicManagementService) {
+
+        this.topicManagementService = topicManagementService;
     }
 }

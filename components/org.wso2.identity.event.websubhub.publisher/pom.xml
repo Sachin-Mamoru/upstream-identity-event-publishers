@@ -68,8 +68,8 @@
             <artifactId>org.wso2.carbon.identity.topic.management</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.wso2.identity.event.publishers</groupId>
-            <artifactId>org.wso2.identity.event.common.publisher</artifactId>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.event.publisher</artifactId>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity.framework</groupId>
@@ -151,16 +151,12 @@
                             version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.wso2.carbon.identity.topic.management.api.*;
                             version="${carbon.identity.framework.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.event.publisher.api.*;
+                            version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.json.simple.parser; version="${com.googlecode.json-simple.wso2.version.range}",
-                            org.wso2.identity.event.common.publisher;
-                            version="${identity.outbound.adapter.version.range}",
                             org.wso2.carbon.identity.organization.management.service.*;
                             version="${org.wso2.carbon.identity.organization.management.core.version.range}",
-                            org.wso2.identity.event.common.publisher.exception;
-                            version="${identity.outbound.adapter.version.range}",
                             org.apache.http.client.utils; version="${httpclient.httpcomponents.wso2.version.range}",
-                            org.wso2.identity.event.common.publisher.model;
-                            version="${identity.outbound.adapter.version.range}",
                             com.nimbusds.jose.*; version="${nimbusds.osgi.version.range}",
                             org.wso2.carbon.identity.event; version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.json.simple; version="${com.googlecode.json-simple.wso2.version.range}",

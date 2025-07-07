@@ -29,10 +29,11 @@ import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.identity.core.util.IdentityCoreInitializedEvent;
+import org.wso2.carbon.identity.event.publisher.api.service.EventPublisher;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.identity.subscription.management.api.service.EventSubscriber;
+import org.wso2.carbon.identity.topic.management.api.service.TopicManagementService;
 import org.wso2.carbon.identity.topic.management.api.service.TopicManager;
-import org.wso2.identity.event.common.publisher.EventPublisher;
 import org.wso2.identity.event.websubhub.publisher.config.OutboundAdapterConfigurationProvider;
 import org.wso2.identity.event.websubhub.publisher.config.WebSubAdapterConfiguration;
 import org.wso2.identity.event.websubhub.publisher.service.WebSubEventPublisherImpl;
@@ -117,5 +118,22 @@ public class WebSubHubAdapterServiceComponent {
     protected void unsetOrganizationManager(OrganizationManager organizationManager) {
 
         WebSubHubAdapterDataHolder.getInstance().setOrganizationManager(null);
+    }
+
+    @Reference(
+            name = "topic.management.service.component",
+            service = TopicManagementService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetTopicManagementService"
+    )
+    protected void setTopicManagementService(TopicManagementService topicManagementService) {
+
+        WebSubHubAdapterDataHolder.getInstance().setTopicManagementService(topicManagementService);
+    }
+
+    protected void unsetTopicManagementService(TopicManagementService topicManagementService) {
+
+        WebSubHubAdapterDataHolder.getInstance().setTopicManagementService(null);
     }
 }
