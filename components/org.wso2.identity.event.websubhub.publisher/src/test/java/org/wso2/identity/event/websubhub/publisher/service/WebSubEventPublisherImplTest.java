@@ -26,10 +26,10 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
-import org.wso2.identity.event.common.publisher.model.EventContext;
-import org.wso2.identity.event.common.publisher.model.SecurityEventTokenPayload;
+import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherException;
+import org.wso2.carbon.identity.event.publisher.api.model.EventContext;
+import org.wso2.carbon.identity.event.publisher.api.model.SecurityEventTokenPayload;
 import org.wso2.identity.event.websubhub.publisher.config.WebSubAdapterConfiguration;
-import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
 import org.wso2.identity.event.websubhub.publisher.internal.ClientManager;
 import org.wso2.identity.event.websubhub.publisher.internal.WebSubHubAdapterDataHolder;
 
@@ -95,7 +95,7 @@ public class WebSubEventPublisherImplTest {
     }
 
     @Test
-    public void testPublishSuccess() throws WebSubAdapterException {
+    public void testPublishSuccess() throws EventPublisherException {
 
         try (MockedStatic<LoggerUtils> mockedLoggerUtils = mockStatic(LoggerUtils.class)) {
             mockedLoggerUtils.when(LoggerUtils::isDiagnosticLogsEnabled).thenReturn(false);
