@@ -104,12 +104,15 @@ public class WebSubTopicManagerImplTest {
         mockedStaticUtil.when(WebSubHubAdapterUtil::getWebSubBaseURL).thenReturn("https://hub.example.com");
         mockedStaticUtil.when(() -> WebSubHubAdapterUtil.buildURL(anyString(), anyString(), anyString()))
                 .thenReturn("https://hub.example.com?hub.mode=register&hub.topic=test-topic");
-        mockedStaticUtil.when(() -> WebSubHubAdapterUtil.constructHubTopic(anyString(), anyString(), anyString()))
+        mockedStaticUtil.when(
+                        () -> WebSubHubAdapterUtil.constructHubTopic(anyString(), anyString(), anyString(),
+                                anyString()))
                 .thenAnswer(invocation -> {
                     String channelUri = invocation.getArgument(0);
-                    String profileVersion = invocation.getArgument(1);
-                    String tenantDomain = invocation.getArgument(2);
-                    return tenantDomain + "." + profileVersion + "." + channelUri;
+                    String profileName = invocation.getArgument(1);
+                    String profileVersion = invocation.getArgument(2);
+                    String tenantDomain = invocation.getArgument(3);
+                    return tenantDomain + "." + profileName + "." + profileVersion + "." + channelUri;
                 });
 
         mockedStaticCorrelationLogUtils = mockStatic(WebSubHubCorrelationLogUtils.class);
@@ -152,16 +155,16 @@ public class WebSubTopicManagerImplTest {
     @Test
     public void testGetName() {
 
-        assertEquals(webSubTopicManager.getName(), WEB_SUB_HUB_ADAPTER_NAME);
+        assertEquals(webSubTopicManager.getAssociatedAdaptor(), WEB_SUB_HUB_ADAPTER_NAME);
     }
 
     @Test
     public void testConstructTopic() throws TopicManagementException {
 
-        String topic = webSubTopicManager.constructTopic("channel-uri", "1.0", "carbon.super");
-        assertEquals(topic, "carbon.super.1.0.channel-uri");
+        String topic = webSubTopicManager.constructTopic("channel-uri", "WSO2", "1.0", "carbon.super");
+        assertEquals(topic, "carbon.super.WSO2.1.0.channel-uri");
         mockedStaticUtil.verify(() ->
-                WebSubHubAdapterUtil.constructHubTopic("channel-uri", "1.0", "carbon.super"));
+                WebSubHubAdapterUtil.constructHubTopic("channel-uri", "WSO2", "1.0", "carbon.super"));
     }
 
     @Test
@@ -180,7 +183,7 @@ public class WebSubTopicManagerImplTest {
         webSubTopicManager.deregisterTopic("test-topic", "carbon.super");
         verify(mockClientManager).createHttpPost(anyString(), any());
         verify(mockClientManager).execute(any(HttpPost.class));
-        mockedStaticUtil.verify(() -> WebSubHubAdapterUtil.getWebSubBaseURL());
+        mockedStaticUtil.verify(WebSubHubAdapterUtil::getWebSubBaseURL);
         mockedStaticUtil.verify(
                 () -> WebSubHubAdapterUtil.buildURL("test-topic", "https://hub.example.com", "deregister"));
     }

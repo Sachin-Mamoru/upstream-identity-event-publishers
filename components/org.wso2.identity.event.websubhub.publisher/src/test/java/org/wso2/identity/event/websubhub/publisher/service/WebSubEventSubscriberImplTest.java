@@ -74,7 +74,7 @@ public class WebSubEventSubscriberImplTest {
 
         mockedStaticUtil = mockStatic(WebSubHubAdapterUtil.class);
         mockedStaticUtil.when(WebSubHubAdapterUtil::getWebSubBaseURL).thenReturn("https://mock-websub-hub.com");
-        mockedStaticUtil.when(() -> WebSubHubAdapterUtil.constructHubTopic(any(), any(), any()))
+        mockedStaticUtil.when(() -> WebSubHubAdapterUtil.constructHubTopic(any(), any(), any(), any()))
                 .thenAnswer(invocation -> invocation.getArgument(1) + "-" + invocation.getArgument(0));
     }
 

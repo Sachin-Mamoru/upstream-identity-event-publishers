@@ -4,7 +4,7 @@ import org.mockito.MockedStatic;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.identity.event.common.publisher.exception.AdapterConfigurationException;
+import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherException;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -62,13 +62,14 @@ public class OutboundAdapterConfigurationProviderTest {
                 fail("AdapterConfigurationException was expected but not thrown.");
             } catch (InvocationTargetException e) {
                 Throwable cause = e.getCause();
-                assertTrue(cause instanceof AdapterConfigurationException,
+                assertTrue(cause instanceof EventPublisherException,
                         "Cause should be AdapterConfigurationException");
                 assertTrue(cause.getMessage().contains("configuration file doesn't exist"),
                         "Exception message should indicate file not found");
             }
         }
     }
+
     @Test
     public void testLoadPropertiesSuccess() throws Exception {
 

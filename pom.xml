@@ -34,9 +34,7 @@
     <url>http://wso2.org</url>
 
     <modules>
-        <module>components/org.wso2.identity.event.common.publisher</module>
         <module>components/org.wso2.identity.event.websubhub.publisher</module>
-        <module>features/common-event-publisher</module>
     </modules>
 
     <scm>
@@ -81,6 +79,11 @@
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.event.publisher</artifactId>
+                <version>${carbon.identity.framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
                 <artifactId>org.wso2.carbon.identity.application.authentication.framework</artifactId>
                 <version>${carbon.identity.framework.version}</version>
                 <exclusions>
@@ -93,11 +96,6 @@
                         <artifactId>pax-logging-log4j2</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.wso2.identity.event.publishers</groupId>
-                <artifactId>org.wso2.identity.event.common.publisher</artifactId>
-                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.wso2.orbit.org.apache.httpcomponents</groupId>
@@ -385,7 +383,7 @@
     <properties>
         <carbon.kernel.version>4.10.53</carbon.kernel.version>
         <carbon.kernel.package.import.version.range>[4.6.0, 5.0.0)</carbon.kernel.package.import.version.range>
-        <carbon.identity.framework.version>7.8.269</carbon.identity.framework.version>
+        <carbon.identity.framework.version>7.8.282</carbon.identity.framework.version>
         <identity.outbound.adapter.version.range>[1.0.0, 2.0.0)</identity.outbound.adapter.version.range>
         <httpclient.httpcomponents.wso2.version>4.5.13.wso2v1</httpclient.httpcomponents.wso2.version>
         <httpclient.httpcomponents.wso2.version.range>[4.5.0, 5.0.0)</httpclient.httpcomponents.wso2.version.range>

@@ -26,9 +26,12 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.util.EntityUtils;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
-import org.wso2.identity.event.common.publisher.EventPublisher;
-import org.wso2.identity.event.common.publisher.model.EventContext;
-import org.wso2.identity.event.common.publisher.model.SecurityEventTokenPayload;
+import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherException;
+import org.wso2.carbon.identity.event.publisher.api.model.EventContext;
+import org.wso2.carbon.identity.event.publisher.api.model.SecurityEventTokenPayload;
+import org.wso2.carbon.identity.event.publisher.api.service.EventPublisher;
+import org.wso2.carbon.identity.topic.management.api.exception.TopicManagementException;
+import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
 import org.wso2.identity.event.websubhub.publisher.internal.ClientManager;
 import org.wso2.identity.event.websubhub.publisher.internal.WebSubHubAdapterDataHolder;
@@ -37,11 +40,14 @@ import org.wso2.identity.event.websubhub.publisher.util.WebSubHubCorrelationLogU
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
+import static org.wso2.carbon.identity.event.publisher.api.constant.ErrorMessage.ERROR_CODE_CONSTRUCTING_HUB_TOPIC;
+import static org.wso2.carbon.identity.event.publisher.api.constant.ErrorMessage.ERROR_CODE_TOPIC_EXISTS_CHECK;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.PUBLISH;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.buildURL;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.constructHubTopic;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.getWebSubBaseURL;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleResponseCorrelationLog;
+import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleServerException;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.logDiagnosticFailure;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.logDiagnosticSuccess;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.logPublishingEvent;
@@ -54,13 +60,37 @@ public class WebSubEventPublisherImpl implements EventPublisher {
     private static final Log log = LogFactory.getLog(WebSubEventPublisherImpl.class);
 
     @Override
-    public void publish(SecurityEventTokenPayload eventPayload, EventContext eventContext)
-            throws WebSubAdapterException {
+    public String getAssociatedAdaptor() {
 
-        makeAsyncAPICall(eventPayload, eventContext,
-                constructHubTopic(eventContext.getEventUri(), eventContext.getEventProfileVersion(),
-                        eventContext.getTenantDomain()), getWebSubBaseURL());
-        log.debug("Event published successfully to the WebSubHub.");
+        return WebSubHubAdapterConstants.WEB_SUB_HUB_ADAPTER_NAME;
+    }
+
+    @Override
+    public void publish(SecurityEventTokenPayload eventPayload, EventContext eventContext)
+            throws EventPublisherException {
+
+        try {
+            makeAsyncAPICall(eventPayload, eventContext,
+                    constructHubTopic(eventContext.getEventUri(), eventContext.getEventProfileName(),
+                            eventContext.getEventProfileVersion(), eventContext.getTenantDomain()), getWebSubBaseURL());
+            log.debug("Event published successfully to the WebSubHub.");
+        } catch (WebSubAdapterException e) {
+            throw handleServerException(ERROR_CODE_CONSTRUCTING_HUB_TOPIC, e,
+                    WebSubHubAdapterConstants.WEB_SUB_HUB_ADAPTER_NAME);
+        }
+    }
+
+    @Override
+    public boolean canHandleEvent(EventContext eventContext) throws EventPublisherException {
+
+        try {
+            return WebSubHubAdapterDataHolder.getInstance().getTopicManagementService()
+                    .isTopicExists(eventContext.getEventUri(), eventContext.getEventProfileName(),
+                            eventContext.getEventProfileVersion(), eventContext.getTenantDomain());
+        } catch (TopicManagementException e) {
+            throw handleServerException(ERROR_CODE_TOPIC_EXISTS_CHECK, e,
+                    WebSubHubAdapterConstants.WEB_SUB_HUB_ADAPTER_NAME);
+        }
     }
 
     private void makeAsyncAPICall(SecurityEventTokenPayload eventPayload, EventContext eventContext,

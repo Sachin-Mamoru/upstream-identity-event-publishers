@@ -29,10 +29,13 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.MDC;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
+import org.wso2.carbon.identity.event.publisher.api.constant.ErrorMessage;
+import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherException;
+import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherServerException;
+import org.wso2.carbon.identity.event.publisher.api.model.EventContext;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.carbon.identity.topic.management.api.exception.TopicManagementException;
 import org.wso2.carbon.utils.DiagnosticLog;
-import org.wso2.identity.event.common.publisher.model.EventContext;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterClientException;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
@@ -117,6 +120,41 @@ public class WebSubHubAdapterUtil {
             description = String.format(description, data);
         }
         return new WebSubAdapterServerException(error.getMessage(), description, error.getCode(), throwable);
+    }
+
+    /**
+     * Handle server exceptions.
+     *
+     * @param error     Error message.
+     * @param throwable Throwable.
+     * @param data      Data.
+     * @return EventPublisherException.
+     */
+    public static EventPublisherException handleServerException(
+            ErrorMessage error, Throwable throwable, String... data) {
+
+        String description = error.getDescription();
+        if (ArrayUtils.isNotEmpty(data)) {
+            description = String.format(description, data);
+        }
+        return new EventPublisherServerException(error.getMessage(), description, error.getCode(), throwable);
+    }
+
+    /**
+     * Handle server exceptions.
+     *
+     * @param error     Error message.
+     * @param data      Data.
+     * @return EventPublisherException.
+     */
+    public static EventPublisherException handleServerException(
+            ErrorMessage error, String... data) {
+
+        String description = error.getDescription();
+        if (ArrayUtils.isNotEmpty(data)) {
+            description = String.format(description, data);
+        }
+        return new EventPublisherServerException(error.getMessage(), description, error.getCode());
     }
 
     /**
@@ -283,11 +321,13 @@ public class WebSubHubAdapterUtil {
      * Construct the hub topic by combining tenant domain, version and topic suffix.
      *
      * @param channelUri          Channel URI.
+     * @param eventProfileName    Event profile name.
      * @param eventProfileVersion Event profile version.
      * @param tenantDomain        Tenant domain.
      * @return Hub topic. Returns topic in the format: {tenantDomain}.{orgid}.schema.{schema}.{version}.event.{event}
      */
-    public static String constructHubTopic(String channelUri, String eventProfileVersion, String tenantDomain)
+    public static String constructHubTopic(String channelUri, String eventProfileName, String eventProfileVersion,
+                                           String tenantDomain)
             throws WebSubAdapterServerException {
 
         String event = extractEvent(channelUri);
@@ -295,7 +335,7 @@ public class WebSubHubAdapterUtil {
         return tenantDomain + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + getOrganizationId(tenantDomain) +
                 WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
                 WebSubHubAdapterConstants.SCHEMA + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
-                WebSubHubAdapterConstants.WSO2_SCHEMA + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
+                eventProfileName + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
                 eventProfileVersion +
                 WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + WebSubHubAdapterConstants.EVENT +
                 WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + event;
