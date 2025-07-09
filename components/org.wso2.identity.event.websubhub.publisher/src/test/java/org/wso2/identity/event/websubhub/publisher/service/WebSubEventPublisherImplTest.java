@@ -103,6 +103,7 @@ public class WebSubEventPublisherImplTest {
             // Mock inputs
             EventContext eventContext = EventContext.builder()
                     .tenantDomain("test-tenant")
+                    .eventProfileName("WSO2")
                     .eventUri("test-uri")
                     .build();
             SecurityEventTokenPayload payload = SecurityEventTokenPayload.builder()
