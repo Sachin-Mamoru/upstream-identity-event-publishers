@@ -335,7 +335,7 @@ public class WebSubHubAdapterUtil {
         return tenantDomain + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + getOrganizationId(tenantDomain) +
                 WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
                 WebSubHubAdapterConstants.SCHEMA + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
-                eventProfileName + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
+                eventProfileName.toLowerCase() + WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR +
                 eventProfileVersion +
                 WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + WebSubHubAdapterConstants.EVENT +
                 WebSubHubAdapterConstants.Http.TOPIC_SEPARATOR + event;
