@@ -60,7 +60,7 @@ public class WebSubEventPublisherImpl implements EventPublisher {
     private static final Log log = LogFactory.getLog(WebSubEventPublisherImpl.class);
 
     @Override
-    public String getAssociatedAdaptor() {
+    public String getAssociatedAdapter() {
 
         return WebSubHubAdapterConstants.WEB_SUB_HUB_ADAPTER_NAME;
     }

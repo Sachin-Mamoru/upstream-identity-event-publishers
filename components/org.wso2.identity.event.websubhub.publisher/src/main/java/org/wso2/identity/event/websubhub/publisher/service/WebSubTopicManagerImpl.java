@@ -72,7 +72,7 @@ public class WebSubTopicManagerImpl implements TopicManager {
     private static final long RETRY_DELAY_MS = 400;
 
     @Override
-    public String getAssociatedAdaptor() {
+    public String getAssociatedAdapter() {
 
         return WebSubHubAdapterConstants.WEB_SUB_HUB_ADAPTER_NAME;
     }

@@ -34,11 +34,13 @@ import org.wso2.carbon.identity.organization.management.service.OrganizationMana
 import org.wso2.carbon.identity.subscription.management.api.service.EventSubscriber;
 import org.wso2.carbon.identity.topic.management.api.service.TopicManagementService;
 import org.wso2.carbon.identity.topic.management.api.service.TopicManager;
-import org.wso2.identity.event.websubhub.publisher.config.OutboundAdapterConfigurationProvider;
+import org.wso2.carbon.identity.webhook.metadata.api.service.EventAdapterMetadataService;
 import org.wso2.identity.event.websubhub.publisher.config.WebSubAdapterConfiguration;
 import org.wso2.identity.event.websubhub.publisher.service.WebSubEventPublisherImpl;
 import org.wso2.identity.event.websubhub.publisher.service.WebSubEventSubscriberImpl;
 import org.wso2.identity.event.websubhub.publisher.service.WebSubTopicManagerImpl;
+
+import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.WEB_SUB_HUB_ADAPTER_NAME;
 
 /**
  * WebSubHub Outbound Event Adapter service component.
@@ -55,7 +57,8 @@ public class WebSubHubAdapterServiceComponent {
 
         try {
             WebSubHubAdapterDataHolder.getInstance().setAdapterConfiguration(new WebSubAdapterConfiguration(
-                    OutboundAdapterConfigurationProvider.getInstance()));
+                    WebSubHubAdapterDataHolder.getInstance().getEventAdapterMetadataService()
+                            .getAdapterByName(WEB_SUB_HUB_ADAPTER_NAME).getProperties()));
             if (WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().isAdapterEnabled()) {
                 // Register EventPublisher service
                 WebSubEventPublisherImpl eventPublisherService = new WebSubEventPublisherImpl();
@@ -135,5 +138,25 @@ public class WebSubHubAdapterServiceComponent {
     protected void unsetTopicManagementService(TopicManagementService topicManagementService) {
 
         WebSubHubAdapterDataHolder.getInstance().setTopicManagementService(null);
+    }
+
+    @Reference(
+            name = "identity.webhook.adapter.metadata.component",
+            service = EventAdapterMetadataService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetEventAdapterMetadataService"
+    )
+    protected void setEventAdapterMetadataService(EventAdapterMetadataService eventAdapterMetadataService) {
+
+        WebSubHubAdapterDataHolder.getInstance()
+                .setEventAdapterMetadataService(eventAdapterMetadataService);
+        log.debug("EventAdapterMetadataService set in WebSubHubAdapterDataHolder bundle.");
+    }
+
+    protected void unsetEventAdapterMetadataService(EventAdapterMetadataService eventAdapterMetadataService) {
+
+        WebSubHubAdapterDataHolder.getInstance().setEventAdapterMetadataService(null);
+        log.debug("EventAdapterMetadataService unset in WebSubHubAdapterDataHolder bundle.");
     }
 }

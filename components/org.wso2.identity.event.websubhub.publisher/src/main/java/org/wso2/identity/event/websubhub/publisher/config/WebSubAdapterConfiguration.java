@@ -22,19 +22,21 @@ import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterCons
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
 import org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil;
 
+import java.util.Map;
+
 /**
  * WebSubHub Adapter Configuration.
  */
 public class WebSubAdapterConfiguration {
 
-    private static final String ADAPTER_ENABLED_CONFIG = "adapter.websubhub.enabled";
-    private static final String ADAPTER_HUB_URL_CONFIG = "adapter.websubhub.baseUrl";
-    private static final String HTTP_CONNECTION_TIMEOUT = "adapter.websubhub.httpConnectionTimeout";
-    private static final String HTTP_READ_TIMEOUT = "adapter.websubhub.httpReadTimeout";
-    private static final String HTTP_CONNECTION_REQUEST_TIMEOUT = "adapter.websubhub.httpConnectionRequestTimeout";
-    private static final String DEFAULT_MAX_CONNECTIONS = "adapter.websubhub.defaultMaxConnections";
-    private static final String DEFAULT_MAX_CONNECTIONS_PER_ROUTE = "adapter.websubhub.defaultMaxConnectionsPerRoute";
-    private static final String MTLS_ENABLED = "adapter.websubhub.mtlsEnabled";
+    private static final String ADAPTER_ENABLED_CONFIG = "enabled";
+    private static final String ADAPTER_HUB_URL_CONFIG = "baseUrl";
+    private static final String HTTP_CONNECTION_TIMEOUT = "httpConnectionTimeout";
+    private static final String HTTP_READ_TIMEOUT = "httpReadTimeout";
+    private static final String HTTP_CONNECTION_REQUEST_TIMEOUT = "httpConnectionRequestTimeout";
+    private static final String DEFAULT_MAX_CONNECTIONS = "defaultMaxConnections";
+    private static final String DEFAULT_MAX_CONNECTIONS_PER_ROUTE = "defaultMaxConnectionsPerRoute";
+    private static final String MTLS_ENABLED = "mtlsEnabled";
     private final boolean adapterEnabled;
     private final int httpConnectionTimeout;
     private final int httpReadTimeout;
@@ -48,44 +50,41 @@ public class WebSubAdapterConfiguration {
     /**
      * Initialize the {@link WebSubAdapterConfiguration}.
      *
-     * @param configurationProvider Outbound adapter configuration provider.
+     * @param properties Map of properties to initialize the configuration.
      * @throws WebSubAdapterException on failures when creating the configuration object.
      */
-    public WebSubAdapterConfiguration(OutboundAdapterConfigurationProvider configurationProvider)
-            throws WebSubAdapterException {
+    public WebSubAdapterConfiguration(Map<String, String> properties) throws WebSubAdapterException {
 
-        this.adapterEnabled = Boolean.parseBoolean(
-                configurationProvider.getProperty(ADAPTER_ENABLED_CONFIG));
+        this.adapterEnabled = Boolean.parseBoolean(properties.get(ADAPTER_ENABLED_CONFIG));
 
         if (this.adapterEnabled) {
-            // If adapter is enabled, The base URL is mandatory to be configured.
-            this.webSubHubBaseUrl = configurationProvider.getProperty(ADAPTER_HUB_URL_CONFIG);
+            this.webSubHubBaseUrl = properties.get(ADAPTER_HUB_URL_CONFIG);
             if (this.webSubHubBaseUrl == null) {
                 throw WebSubHubAdapterUtil.handleClientException(
                         WebSubHubAdapterConstants.ErrorMessages.WEB_SUB_BASE_URL_NOT_CONFIGURED);
             }
         }
 
-        this.mtlsEnabled = Boolean.parseBoolean(
-                configurationProvider.getProperty(MTLS_ENABLED));
+        this.mtlsEnabled = Boolean.parseBoolean(properties.get(MTLS_ENABLED));
         this.httpConnectionTimeout = parseIntOrDefault(
-                configurationProvider.getProperty(HTTP_CONNECTION_TIMEOUT),
+                properties.get(HTTP_CONNECTION_TIMEOUT),
                 WebSubHubAdapterConstants.Http.DEFAULT_HTTP_CONNECTION_TIMEOUT);
         this.httpReadTimeout = parseIntOrDefault(
-                configurationProvider.getProperty(HTTP_READ_TIMEOUT),
+                properties.get(HTTP_READ_TIMEOUT),
                 WebSubHubAdapterConstants.Http.DEFAULT_HTTP_READ_TIMEOUT);
         this.httpConnectionRequestTimeout = parseIntOrDefault(
-                configurationProvider.getProperty(HTTP_CONNECTION_REQUEST_TIMEOUT),
+                properties.get(HTTP_CONNECTION_REQUEST_TIMEOUT),
                 WebSubHubAdapterConstants.Http.DEFAULT_HTTP_CONNECTION_REQUEST_TIMEOUT);
         this.defaultMaxConnections = parseIntOrDefault(
-                configurationProvider.getProperty(DEFAULT_MAX_CONNECTIONS),
+                properties.get(DEFAULT_MAX_CONNECTIONS),
                 WebSubHubAdapterConstants.Http.DEFAULT_HTTP_MAX_CONNECTIONS);
         this.defaultMaxConnectionsPerRoute = parseIntOrDefault(
-                configurationProvider.getProperty(DEFAULT_MAX_CONNECTIONS_PER_ROUTE),
+                properties.get(DEFAULT_MAX_CONNECTIONS_PER_ROUTE),
                 WebSubHubAdapterConstants.Http.DEFAULT_HTTP_MAX_CONNECTIONS_PER_ROUTE);
     }
 
     private int parseIntOrDefault(String value, int defaultValue) {
+
         try {
             return value != null ? Integer.parseInt(value) : defaultValue;
         } catch (NumberFormatException e) {
