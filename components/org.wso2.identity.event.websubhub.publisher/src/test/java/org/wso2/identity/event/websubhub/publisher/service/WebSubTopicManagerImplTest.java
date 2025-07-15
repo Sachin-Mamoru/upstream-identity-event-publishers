@@ -155,7 +155,7 @@ public class WebSubTopicManagerImplTest {
     @Test
     public void testGetName() {
 
-        assertEquals(webSubTopicManager.getAssociatedAdaptor(), WEB_SUB_HUB_ADAPTER_NAME);
+        assertEquals(webSubTopicManager.getAssociatedAdapter(), WEB_SUB_HUB_ADAPTER_NAME);
     }
 
     @Test

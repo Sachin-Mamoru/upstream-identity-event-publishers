@@ -22,9 +22,8 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Test class for WebSubAdapterConfiguration.
@@ -34,10 +33,9 @@ public class WebSubAdapterConfigurationTest {
     @Test
     public void testDefaultConfiguration() throws WebSubAdapterException {
 
-        OutboundAdapterConfigurationProvider provider = mock(OutboundAdapterConfigurationProvider.class);
-        when(provider.getProperty(anyString())).thenReturn(null);
+        Map<String, String> properties = new HashMap<>();
+        WebSubAdapterConfiguration config = new WebSubAdapterConfiguration(properties);
 
-        WebSubAdapterConfiguration config = new WebSubAdapterConfiguration(provider);
         Assert.assertFalse(config.isAdapterEnabled());
         Assert.assertEquals(config.getHTTPConnectionTimeout(), 300);
     }
