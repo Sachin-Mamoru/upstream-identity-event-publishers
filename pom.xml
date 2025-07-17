@@ -36,6 +36,7 @@
     <modules>
         <module>components/org.wso2.identity.event.websubhub.publisher</module>
         <module>components/org.wso2.identity.event.http.publisher</module>
+        <module>features/http-event-publisher</module>
     </modules>
 
     <scm>
