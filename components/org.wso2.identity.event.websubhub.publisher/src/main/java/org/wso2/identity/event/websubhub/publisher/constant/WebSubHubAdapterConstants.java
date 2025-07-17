@@ -28,18 +28,6 @@ public class WebSubHubAdapterConstants {
     public static final String EVENT = "event";
 
     /**
-     * Configuration related constants.
-     */
-    public static class Config {
-
-        public static final String CONFIG_FILE_NAME = "identity-outbound-adapter.properties";
-
-        private Config() {
-
-        }
-    }
-
-    /**
      * WebSubHub Adapter related constants.
      */
     public static class Http {
