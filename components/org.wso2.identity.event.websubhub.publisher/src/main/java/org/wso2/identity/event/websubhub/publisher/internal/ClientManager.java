@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
@@ -36,6 +37,7 @@ import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
+import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.ssl.SSLContexts;
 import org.wso2.carbon.core.RegistryResources;
@@ -55,7 +57,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManagerFactory;
@@ -131,16 +132,10 @@ public class ClientManager {
         try {
             IdentityKeyStoreResolver resolver = IdentityKeyStoreResolver.getInstance();
 
-            //TODO: remove the info logs once verified
-
             // Load custom keystore and truststore
             KeyStore customKeyStore = resolver.getCustomKeyStore(SUPER_TENANT_DOMAIN_NAME, WEBSUBHUB_KEYSTORE_NAME);
-            LOG.info("Custom keystore loaded successfully for tenant: " + SUPER_TENANT_DOMAIN_NAME +
-                    ", keystore: " + WEBSUBHUB_KEYSTORE_NAME + ", aliases: " + customKeyStore.size());
 
             KeyStore trustStore = resolver.getTrustStore(SUPER_TENANT_DOMAIN_NAME);
-            LOG.info("Truststore loaded successfully for tenant: " + SUPER_TENANT_DOMAIN_NAME +
-                    ", aliases: " + trustStore.size());
 
             // Initialize KeyManagerFactory with custom keystore
             KeyManagerFactory keyManagerFactory =
@@ -148,19 +143,16 @@ public class ClientManager {
             keyManagerFactory.init(customKeyStore, resolver.getCustomKeyStoreConfig(
                     IdentityKeyStoreResolverUtil.buildCustomKeyStoreName(WEBSUBHUB_KEYSTORE_NAME),
                     RegistryResources.SecurityManagement.CustomKeyStore.PROP_KEY_PASSWORD).toCharArray());
-            LOG.info("KeyManagerFactory initialized using the custom keystore");
 
             // Initialize TrustManagerFactory with truststore
             TrustManagerFactory trustManagerFactory =
                     TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustManagerFactory.init(trustStore);
-            LOG.info("TrustManagerFactory initialized using the truststore");
 
             // Build SSLContext
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(),
                     new SecureRandom());
-            LOG.info("SSLContext initialized successfully for MTLS");
 
             // Disable hostname verification
             // TODO: Enable once the hostname verification is properly configured
@@ -171,11 +163,9 @@ public class ClientManager {
 
             SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(
                     sslContext,
-                    new String[]{"TLSv1.2"},
+                    new String[] {"TLSv1.2"},
                     null,
-                    allowAllHosts);  // ← HostnameVerifier overridden
-
-            LOG.info("SSLConnectionSocketFactory created with TLSv1.2 and hostname verification disabled");
+                    allowAllHosts);
 
             return HttpClients.custom()
                     .setSSLSocketFactory(sslSocketFactory)
@@ -253,7 +243,15 @@ public class ClientManager {
                 WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().getDefaultMaxConnectionsPerRoute();
 
         if (managerType.equals(PoolingNHttpClientConnectionManager.class)) {
-            ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor();
+            IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
+                    .setConnectTimeout(WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration()
+                            .getHTTPConnectionTimeout())
+                    .setSoTimeout(
+                            WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().getHttpReadTimeout())
+                    .setIoThreadCount(8)
+                    .build();
+
+            ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(ioReactorConfig);
             PoolingNHttpClientConnectionManager manager = new PoolingNHttpClientConnectionManager(ioReactor);
             manager.setMaxTotal(maxConnections);
             manager.setDefaultMaxPerRoute(maxConnectionsPerRoute);
@@ -309,20 +307,34 @@ public class ClientManager {
      */
     public CompletableFuture<HttpResponse> executeAsync(HttpPost httpPost) {
 
-        //TODO: Incorporate retry mechanism
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                return getHttpAsyncClient().execute(httpPost, null).get();
-            } catch (InterruptedException ie) {
-                // Restore interrupted status
-                Thread.currentThread().interrupt();
-                throw new IdentityRuntimeException("Thread was interrupted", ie);
-            } catch (ExecutionException ee) {
-                throw new IdentityRuntimeException("Execution exception", ee);
-            } catch (Exception ex) {
-                throw new IdentityRuntimeException("Exception occurred", ex);
+        CompletableFuture<HttpResponse> future = new CompletableFuture<>();
+
+        getHttpAsyncClient().execute(httpPost, new FutureCallback<HttpResponse>() {
+            @Override
+            public void completed(HttpResponse result) {
+
+                future.complete(result);
+            }
+
+            @Override
+            public void failed(Exception ex) {
+
+                future.completeExceptionally(
+                        new IdentityRuntimeException(
+                                "WebSubHub publisher async http client execution failed for URL: " + httpPost.getURI(),
+                                ex
+                        )
+                );
+            }
+
+            @Override
+            public void cancelled() {
+
+                future.cancel(true);
             }
         });
+
+        return future;
     }
 
     /**
