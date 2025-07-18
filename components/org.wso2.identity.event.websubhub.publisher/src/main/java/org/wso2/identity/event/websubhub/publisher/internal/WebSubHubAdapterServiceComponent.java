@@ -18,7 +18,6 @@
 
 package org.wso2.identity.event.websubhub.publisher.internal;
 
-import com.nimbusds.jose.util.DefaultResourceRetriever;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
@@ -75,7 +74,6 @@ public class WebSubHubAdapterServiceComponent {
                 context.getBundleContext().registerService(TopicManager.class.getName(),
                         topicManagerService, null);
                 WebSubHubAdapterDataHolder.getInstance().setClientManager(new ClientManager());
-                WebSubHubAdapterDataHolder.getInstance().setResourceRetriever(new DefaultResourceRetriever());
                 log.debug("Successfully activated the WebSubHub adapter service.");
             } else {
                 log.error("WebSubHub Adapter is not enabled.");

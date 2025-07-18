@@ -18,7 +18,6 @@
 
 package org.wso2.identity.event.websubhub.publisher.internal;
 
-import com.nimbusds.jose.util.DefaultResourceRetriever;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.identity.topic.management.api.service.TopicManagementService;
 import org.wso2.carbon.identity.webhook.metadata.api.service.EventAdapterMetadataService;
@@ -35,7 +34,6 @@ public class WebSubHubAdapterDataHolder {
     private ClientManager clientManager;
     private KeyStore trustStore;
     private WebSubAdapterConfiguration adapterConfiguration;
-    private DefaultResourceRetriever resourceRetriever;
     private OrganizationManager organizationManager;
     private TopicManagementService topicManagementService;
     private EventAdapterMetadataService eventAdapterMetadataService;
@@ -77,16 +75,6 @@ public class WebSubHubAdapterDataHolder {
     public void setAdapterConfiguration(WebSubAdapterConfiguration adapterConfiguration) {
 
         this.adapterConfiguration = adapterConfiguration;
-    }
-
-    public DefaultResourceRetriever getResourceRetriever() {
-
-        return resourceRetriever;
-    }
-
-    public void setResourceRetriever(DefaultResourceRetriever resourceRetriever) {
-
-        this.resourceRetriever = resourceRetriever;
     }
 
     public OrganizationManager getOrganizationManager() {
