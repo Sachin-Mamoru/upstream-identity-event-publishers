@@ -244,8 +244,10 @@ public class ClientManager {
 
         if (managerType.equals(PoolingNHttpClientConnectionManager.class)) {
             IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
-                    .setConnectTimeout(WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().getHTTPConnectionTimeout())
-                    .setSoTimeout(WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().getHttpReadTimeout())
+                    .setConnectTimeout(WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration()
+                            .getHTTPConnectionTimeout())
+                    .setSoTimeout(
+                            WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().getHttpReadTimeout())
                     .setIoThreadCount(8)
                     .build();
 
@@ -318,9 +320,10 @@ public class ClientManager {
             public void failed(Exception ex) {
 
                 future.completeExceptionally(
-                    new IdentityRuntimeException(
-                        "WebSubHub publisher async http client execution failed for URL: " + httpPost.getURI(), ex
-                    )
+                        new IdentityRuntimeException(
+                                "WebSubHub publisher async http client execution failed for URL: " + httpPost.getURI(),
+                                ex
+                        )
                 );
             }
 
