@@ -37,6 +37,7 @@ import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
+import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.ssl.SSLContexts;
 import org.wso2.carbon.core.RegistryResources;
@@ -242,7 +243,15 @@ public class ClientManager {
                 WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().getDefaultMaxConnectionsPerRoute();
 
         if (managerType.equals(PoolingNHttpClientConnectionManager.class)) {
-            ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor();
+            IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
+                    .setConnectTimeout(WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration()
+                            .getHTTPConnectionTimeout())
+                    .setSoTimeout(
+                            WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().getHttpReadTimeout())
+                    .setIoThreadCount(8)
+                    .build();
+
+            ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(ioReactorConfig);
             PoolingNHttpClientConnectionManager manager = new PoolingNHttpClientConnectionManager(ioReactor);
             manager.setMaxTotal(maxConnections);
             manager.setDefaultMaxPerRoute(maxConnectionsPerRoute);
