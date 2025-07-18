@@ -113,7 +113,7 @@ public class WebSubEventPublisherImpl implements EventPublisher {
                     handleResponseCorrelationLog(request, requestStartTime,
                             WebSubHubCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
                             ex.getMessage());
-                    log.error("Publishing event data to WebSubHub failed. ", ex);
+                    log.warn("Publishing event data to WebSubHub failed. ", ex);
                     throw new IdentityRuntimeException("Error occurred while publishing event data to WebSubHub. ", ex);
                 });
     }
