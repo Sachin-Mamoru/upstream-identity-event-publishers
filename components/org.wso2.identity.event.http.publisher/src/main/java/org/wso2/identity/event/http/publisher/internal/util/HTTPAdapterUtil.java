@@ -24,10 +24,10 @@ import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
 import org.wso2.carbon.identity.event.publisher.api.model.EventContext;
 import org.wso2.carbon.utils.DiagnosticLog;
-import org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage;
-import org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants;
 import org.wso2.identity.event.http.publisher.api.exception.HTTPAdapterClientException;
 import org.wso2.identity.event.http.publisher.api.exception.HTTPAdapterServerException;
+import org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage;
+import org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants;
 
 /**
  * Utility class for HTTPAdapter.

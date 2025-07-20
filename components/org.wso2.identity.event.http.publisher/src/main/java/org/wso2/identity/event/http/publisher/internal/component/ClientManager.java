@@ -33,6 +33,7 @@ import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
+import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.nio.reactor.ConnectingIOReactor;
 import org.apache.http.ssl.SSLContexts;
 import org.wso2.carbon.identity.base.IdentityRuntimeException;
@@ -75,7 +76,14 @@ public class ClientManager {
             int maxConnectionsPerRoute =
                     HTTPAdapterDataHolder.getInstance().getAdapterConfiguration().getDefaultMaxConnectionsPerRoute();
 
-            ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor();
+            IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
+                    .setConnectTimeout(HTTPAdapterDataHolder.getInstance().getAdapterConfiguration()
+                            .getHTTPConnectionTimeout())
+                    .setSoTimeout(
+                            HTTPAdapterDataHolder.getInstance().getAdapterConfiguration().getHttpReadTimeout())
+                    .setIoThreadCount(8)
+                    .build();
+            ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(ioReactorConfig);
             PoolingNHttpClientConnectionManager asyncConnectionManager =
                     new PoolingNHttpClientConnectionManager(ioReactor);
             asyncConnectionManager.setMaxTotal(maxConnections);

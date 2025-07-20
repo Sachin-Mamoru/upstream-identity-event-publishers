@@ -18,8 +18,8 @@
 
 package org.wso2.identity.event.http.publisher.internal.config;
 
-import org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants;
 import org.wso2.identity.event.http.publisher.api.exception.HTTPAdapterException;
+import org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants;
 
 import java.util.Map;
 
