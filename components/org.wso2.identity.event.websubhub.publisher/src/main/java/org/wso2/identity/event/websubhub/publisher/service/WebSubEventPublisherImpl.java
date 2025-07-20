@@ -25,7 +25,6 @@ import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.util.EntityUtils;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
-import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherException;
 import org.wso2.carbon.identity.event.publisher.api.model.EventContext;
 import org.wso2.carbon.identity.event.publisher.api.model.SecurityEventTokenPayload;
@@ -114,7 +113,7 @@ public class WebSubEventPublisherImpl implements EventPublisher {
                             WebSubHubCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
                             ex.getMessage());
                     log.warn("Publishing event data to WebSubHub failed. ", ex);
-                    throw new IdentityRuntimeException("Error occurred while publishing event data to WebSubHub. ", ex);
+                    return null;
                 });
     }
 

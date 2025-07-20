@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package org.wso2.identity.event.http.publisher.constant;
+package org.wso2.identity.event.http.publisher.internal.constant;
 
 /**
  * Keep constants required by the HTTP Event Adapter.
@@ -32,7 +32,7 @@ public class HTTPAdapterConstants {
 
         public static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
         public static final String CORRELATION_ID_REQUEST_HEADER = "activityid";
-        public static final String X_HUB_SIGNATURE = "x-wso2-event-signature";
+        public static final String X_WSO2_EVENT_SIGNATURE = "x-wso2-event-signature";
         public static final Integer DEFAULT_HTTP_CONNECTION_TIMEOUT = 300;
         public static final Integer DEFAULT_HTTP_READ_TIMEOUT = 300;
         public static final Integer DEFAULT_HTTP_CONNECTION_REQUEST_TIMEOUT = 300;

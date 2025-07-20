@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils.CORRELATION_ID_MDC;
-import static org.wso2.identity.event.http.publisher.constant.HTTPAdapterConstants.Http.CORRELATION_ID_REQUEST_HEADER;
+import static org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants.Http.CORRELATION_ID_REQUEST_HEADER;
 
 /**
  * This class contains the utility methods for adding correlation logs for http publisher.

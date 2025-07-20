@@ -52,12 +52,12 @@ import javax.net.ssl.SSLContext;
 
 import static org.apache.http.HttpHeaders.ACCEPT;
 import static org.apache.http.HttpHeaders.CONTENT_TYPE;
-import static org.wso2.identity.event.http.publisher.constant.ErrorMessage.ERROR_CREATING_HMAC_SIGNATURE;
-import static org.wso2.identity.event.http.publisher.constant.ErrorMessage.ERROR_CREATING_SSL_CONTEXT;
-import static org.wso2.identity.event.http.publisher.constant.ErrorMessage.ERROR_GETTING_ASYNC_CLIENT;
-import static org.wso2.identity.event.http.publisher.constant.ErrorMessage.ERROR_PUBLISHING_EVENT_INVALID_PAYLOAD;
-import static org.wso2.identity.event.http.publisher.constant.HTTPAdapterConstants.Http.HMAC_SHA256_ALGORITHM;
-import static org.wso2.identity.event.http.publisher.constant.HTTPAdapterConstants.Http.X_HUB_SIGNATURE;
+import static org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage.ERROR_CREATING_HMAC_SIGNATURE;
+import static org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage.ERROR_CREATING_SSL_CONTEXT;
+import static org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage.ERROR_GETTING_ASYNC_CLIENT;
+import static org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage.ERROR_PUBLISHING_EVENT_INVALID_PAYLOAD;
+import static org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants.Http.HMAC_SHA256_ALGORITHM;
+import static org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants.Http.X_WSO2_EVENT_SIGNATURE;
 
 /**
  * Class to retrieve the HTTP Clients.
@@ -129,8 +129,7 @@ public class ClientManager {
     private SSLContext createSSLContext() throws HTTPAdapterException {
 
         try {
-            return SSLContexts.custom()
-                    .build();
+            return SSLContexts.custom().build();
         } catch (NoSuchAlgorithmException | KeyManagementException e) {
             throw HTTPAdapterUtil.handleServerException(
                     ERROR_CREATING_SSL_CONTEXT, e);
@@ -167,7 +166,7 @@ public class ClientManager {
         if (secret != null && !secret.isEmpty()) {
             try {
                 String signature = "sha256=" + hmacSha256Hex(secret, jsonString);
-                request.setHeader(X_HUB_SIGNATURE, signature);
+                request.setHeader(X_WSO2_EVENT_SIGNATURE, signature);
             } catch (Exception e) {
                 throw HTTPAdapterUtil.handleClientException(ERROR_CREATING_HMAC_SIGNATURE);
             }
@@ -214,7 +213,12 @@ public class ClientManager {
             @Override
             public void failed(Exception ex) {
 
-                future.completeExceptionally(new IdentityRuntimeException("Execution exception", ex));
+                future.completeExceptionally(
+                        new IdentityRuntimeException(
+                                "HTTP publisher async http client execution failed for URL: " + httpPost.getURI(),
+                                ex
+                        )
+                );
             }
 
             @Override

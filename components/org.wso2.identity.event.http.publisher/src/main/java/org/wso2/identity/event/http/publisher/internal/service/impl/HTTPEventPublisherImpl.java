@@ -23,7 +23,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
-import org.wso2.carbon.identity.base.IdentityRuntimeException;
 import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherException;
 import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherServerException;
 import org.wso2.carbon.identity.event.publisher.api.model.EventContext;
@@ -31,7 +30,7 @@ import org.wso2.carbon.identity.event.publisher.api.model.SecurityEventTokenPayl
 import org.wso2.carbon.identity.event.publisher.api.service.EventPublisher;
 import org.wso2.carbon.identity.webhook.management.api.exception.WebhookMgtException;
 import org.wso2.carbon.identity.webhook.management.api.model.Webhook;
-import org.wso2.identity.event.http.publisher.constant.HTTPAdapterConstants;
+import org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants;
 import org.wso2.identity.event.http.publisher.api.exception.HTTPAdapterException;
 import org.wso2.identity.event.http.publisher.internal.component.ClientManager;
 import org.wso2.identity.event.http.publisher.internal.component.HTTPAdapterDataHolder;
@@ -40,8 +39,8 @@ import org.wso2.identity.event.http.publisher.internal.util.HTTPCorrelationLogUt
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import static org.wso2.identity.event.http.publisher.constant.ErrorMessage.ERROR_ACTIVE_WEBHOOKS_NOT_FOUND;
-import static org.wso2.identity.event.http.publisher.constant.ErrorMessage.ERROR_PUBLISHING_EVENT;
+import static org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage.ERROR_ACTIVE_WEBHOOKS_RETRIEVAL;
+import static org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage.ERROR_PUBLISHING_EVENT;
 import static org.wso2.identity.event.http.publisher.internal.util.HTTPAdapterUtil.logDiagnosticFailure;
 import static org.wso2.identity.event.http.publisher.internal.util.HTTPAdapterUtil.logDiagnosticSuccess;
 import static org.wso2.identity.event.http.publisher.internal.util.HTTPAdapterUtil.logPublishingEvent;
@@ -67,7 +66,6 @@ public class HTTPEventPublisherImpl implements EventPublisher {
 
         try {
             makeAsyncAPICall(eventPayload, eventContext);
-            log.debug("Event published successfully to the HTTP.");
         } catch (HTTPAdapterException e) {
             throw new EventPublisherServerException(ERROR_PUBLISHING_EVENT.getMessage(),
                     ERROR_PUBLISHING_EVENT.getDescription(), ERROR_PUBLISHING_EVENT.getCode(), e);
@@ -83,8 +81,8 @@ public class HTTPEventPublisherImpl implements EventPublisher {
                             eventContext.getEventUri(), eventContext.getTenantDomain());
             return !activeWebhooks.isEmpty();
         } catch (WebhookMgtException e) {
-            throw new EventPublisherServerException(ERROR_ACTIVE_WEBHOOKS_NOT_FOUND.getMessage(),
-                    ERROR_ACTIVE_WEBHOOKS_NOT_FOUND.getDescription(), ERROR_ACTIVE_WEBHOOKS_NOT_FOUND.getCode(), e);
+            throw new EventPublisherServerException(ERROR_ACTIVE_WEBHOOKS_RETRIEVAL.getMessage(),
+                    ERROR_ACTIVE_WEBHOOKS_RETRIEVAL.getDescription(), ERROR_ACTIVE_WEBHOOKS_RETRIEVAL.getCode(), e);
         }
     }
 
@@ -111,9 +109,10 @@ public class HTTPEventPublisherImpl implements EventPublisher {
                         handleResponseCorrelationLog(request, requestStartTime,
                                 HTTPCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
                                 ex.getMessage());
-                        log.error("Publishing event data to HTTP failed. ", ex);
-                        throw new IdentityRuntimeException("Error occurred while publishing event data to HTTP. ", ex);
+                        log.warn("Publishing event data to HTTP failed. ", ex);
+                        return null;
                     });
+            log.debug("Event published successfully to the HTTP. Endpoint: " + url);
         }
     }
 
@@ -137,7 +136,7 @@ public class HTTPEventPublisherImpl implements EventPublisher {
             } else {
                 logDiagnosticFailure(eventContext, url, eventUri);
                 log.debug("HTTP request failed with response code: " + responseCode +
-                        " and reason phrase: " + responsePhrase);
+                        " due to: " + responsePhrase);
             }
         } finally {
             PrivilegedCarbonContext.endTenantFlow();

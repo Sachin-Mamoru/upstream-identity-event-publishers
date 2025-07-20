@@ -24,8 +24,8 @@ import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
 import org.wso2.carbon.identity.event.publisher.api.model.EventContext;
 import org.wso2.carbon.utils.DiagnosticLog;
-import org.wso2.identity.event.http.publisher.constant.ErrorMessage;
-import org.wso2.identity.event.http.publisher.constant.HTTPAdapterConstants;
+import org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage;
+import org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants;
 import org.wso2.identity.event.http.publisher.api.exception.HTTPAdapterClientException;
 import org.wso2.identity.event.http.publisher.api.exception.HTTPAdapterServerException;
 
@@ -47,8 +47,7 @@ public class HTTPAdapterUtil {
      * @param data  Data.
      * @return HTTPAdapterClientException.
      */
-    public static HTTPAdapterClientException handleClientException(
-            ErrorMessage error, String... data) {
+    public static HTTPAdapterClientException handleClientException(ErrorMessage error, String... data) {
 
         String description = error.getDescription();
         if (ArrayUtils.isNotEmpty(data)) {
@@ -65,8 +64,8 @@ public class HTTPAdapterUtil {
      * @param data      Data.
      * @return HTTPAdapterServerException.
      */
-    public static HTTPAdapterServerException handleServerException(
-            ErrorMessage error, Throwable throwable, String... data) {
+    public static HTTPAdapterServerException handleServerException(ErrorMessage error, Throwable throwable,
+                                                                   String... data) {
 
         String description = error.getDescription();
         if (ArrayUtils.isNotEmpty(data)) {

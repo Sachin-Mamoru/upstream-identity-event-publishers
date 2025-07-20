@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package org.wso2.identity.event.http.publisher.constant;
+package org.wso2.identity.event.http.publisher.internal.constant;
 
 /**
  * Error messages for webhook management.
@@ -37,8 +37,8 @@ public enum ErrorMessage {
                     "Ensure that the secret key is configured correctly."),
     ERROR_PUBLISHING_EVENT("HTTPADAPTER-65005", "Error while publishing event.",
             "Error while publishing event to the HTTP endpoint using the HTTP adapter."),
-    ERROR_ACTIVE_WEBHOOKS_NOT_FOUND("HTTPADAPTER-65006", "No active webhooks found.",
-            "No active webhooks found.");
+    ERROR_ACTIVE_WEBHOOKS_RETRIEVAL("HTTPADAPTER-65006", "Error while retrieving active webhooks.",
+            "Error while retrieving active webhooks.");
 
     private final String code;
     private final String message;

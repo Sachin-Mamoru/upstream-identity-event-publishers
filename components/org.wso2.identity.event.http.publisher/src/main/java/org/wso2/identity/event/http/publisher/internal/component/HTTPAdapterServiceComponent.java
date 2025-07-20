@@ -34,7 +34,7 @@ import org.wso2.carbon.identity.webhook.metadata.api.service.EventAdapterMetadat
 import org.wso2.identity.event.http.publisher.internal.config.HTTPAdapterConfiguration;
 import org.wso2.identity.event.http.publisher.internal.service.impl.HTTPEventPublisherImpl;
 
-import static org.wso2.identity.event.http.publisher.constant.HTTPAdapterConstants.HTTP_ADAPTER_NAME;
+import static org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants.HTTP_ADAPTER_NAME;
 
 /**
  * HTTP Outbound Event Adapter service component.
@@ -66,23 +66,6 @@ public class HTTPAdapterServiceComponent {
         } catch (Throwable e) {
             log.error("Can not activate the HTTP adapter service: " + e.getMessage(), e);
         }
-    }
-
-    @Reference(
-            name = "identity.core.init.event.service",
-            service = IdentityCoreInitializedEvent.class,
-            cardinality = ReferenceCardinality.MANDATORY,
-            policy = ReferencePolicy.DYNAMIC,
-            unbind = "unsetIdentityCoreInitializedEventService"
-    )
-    protected void setIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
-        /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
-         is started */
-    }
-
-    protected void unsetIdentityCoreInitializedEventService(IdentityCoreInitializedEvent identityCoreInitializedEvent) {
-        /* reference IdentityCoreInitializedEvent service to guarantee that this component will wait until identity core
-         is started */
     }
 
     @Deactivate
