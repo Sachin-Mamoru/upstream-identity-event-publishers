@@ -33,12 +33,14 @@ import org.wso2.carbon.identity.organization.management.service.OrganizationMana
 import org.wso2.carbon.identity.subscription.management.api.service.EventSubscriber;
 import org.wso2.carbon.identity.topic.management.api.service.TopicManagementService;
 import org.wso2.carbon.identity.topic.management.api.service.TopicManager;
+import org.wso2.carbon.identity.webhook.metadata.api.exception.WebhookMetadataException;
 import org.wso2.carbon.identity.webhook.metadata.api.service.EventAdapterMetadataService;
 import org.wso2.identity.event.websubhub.publisher.config.WebSubAdapterConfiguration;
 import org.wso2.identity.event.websubhub.publisher.service.WebSubEventPublisherImpl;
 import org.wso2.identity.event.websubhub.publisher.service.WebSubEventSubscriberImpl;
 import org.wso2.identity.event.websubhub.publisher.service.WebSubTopicManagerImpl;
 
+import static org.wso2.carbon.identity.webhook.metadata.internal.constant.ErrorMessage.ERROR_CODE_ADAPTER_NOT_FOUND;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.WEB_SUB_HUB_ADAPTER_NAME;
 
 /**
@@ -75,11 +77,16 @@ public class WebSubHubAdapterServiceComponent {
                         topicManagerService, null);
                 WebSubHubAdapterDataHolder.getInstance().setClientManager(new ClientManager());
                 log.debug("Successfully activated the WebSubHub adapter service.");
-            } else {
-                log.error("WebSubHub Adapter is not enabled.");
             }
         } catch (Throwable e) {
-            log.error("Can not activate the WebSubHub adapter service: " + e.getMessage(), e);
+            if (e instanceof WebhookMetadataException &&
+                    ERROR_CODE_ADAPTER_NOT_FOUND.getCode().equals(((WebhookMetadataException) e).getErrorCode())) {
+                log.warn("websubhub adapter is not enabled. " +
+                        "Please enable the websubhub adapter in the configuration file to use the websubhub event " +
+                        "publisher.");
+            } else {
+                log.error("Error while activating the websubhub adapter service: " + e.getMessage(), e);
+            }
         }
     }
 
