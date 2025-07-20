@@ -319,7 +319,12 @@ public class ClientManager {
             @Override
             public void failed(Exception ex) {
 
-                future.completeExceptionally(new IdentityRuntimeException("Execution exception", ex));
+                future.completeExceptionally(
+                        new IdentityRuntimeException(
+                                "WebSubHub publisher async http client execution failed for URL: " + httpPost.getURI(),
+                                ex
+                        )
+                );
             }
 
             @Override
