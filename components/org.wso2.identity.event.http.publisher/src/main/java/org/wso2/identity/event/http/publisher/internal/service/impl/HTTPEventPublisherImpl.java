@@ -110,7 +110,7 @@ public class HTTPEventPublisherImpl implements EventPublisher {
                                 HTTPCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
                                 ex.getMessage());
                         log.warn("Failed to publish event data to endpoint: " + url);
-                        log.debug("Publishing event data to HTTP failed. ", ex);
+                        log.debug("Failed to publish event data to endpoint. ", ex);
                         return null;
                     });
             log.debug("Event published successfully to the HTTP. Endpoint: " + url);

@@ -113,7 +113,7 @@ public class WebSubEventPublisherImpl implements EventPublisher {
                             WebSubHubCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
                             ex.getMessage());
                     log.warn("Failed to publish event data to WebSubHub. Hub url: " + webSubHubBaseUrl);
-                    log.debug("Publishing event data to WebSubHub failed. ", ex);
+                    log.debug("Failed to publish event data to WebSubHub. ", ex);
                     return null;
                 });
     }
