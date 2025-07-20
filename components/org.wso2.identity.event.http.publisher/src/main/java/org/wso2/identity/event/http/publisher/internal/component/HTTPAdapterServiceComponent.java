@@ -29,10 +29,12 @@ import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.identity.event.publisher.api.service.EventPublisher;
 import org.wso2.carbon.identity.webhook.management.api.service.WebhookManagementService;
+import org.wso2.carbon.identity.webhook.metadata.api.exception.WebhookMetadataException;
 import org.wso2.carbon.identity.webhook.metadata.api.service.EventAdapterMetadataService;
 import org.wso2.identity.event.http.publisher.internal.config.HTTPAdapterConfiguration;
 import org.wso2.identity.event.http.publisher.internal.service.impl.HTTPEventPublisherImpl;
 
+import static org.wso2.carbon.identity.webhook.metadata.internal.constant.ErrorMessage.ERROR_CODE_ADAPTER_NOT_FOUND;
 import static org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants.HTTP_ADAPTER_NAME;
 
 /**
@@ -59,11 +61,15 @@ public class HTTPAdapterServiceComponent {
                         eventPublisherService, null);
                 HTTPAdapterDataHolder.getInstance().setClientManager(new ClientManager());
                 log.debug("Successfully activated the HTTP adapter service.");
-            } else {
-                log.error("HTTP Adapter is not enabled.");
             }
         } catch (Throwable e) {
-            log.error("Can not activate the HTTP adapter service: " + e.getMessage(), e);
+            if (e instanceof WebhookMetadataException &&
+                    ERROR_CODE_ADAPTER_NOT_FOUND.getCode().equals(((WebhookMetadataException) e).getErrorCode())) {
+                log.warn("HTTP adapter is not enabled. " +
+                        "Please enable the HTTP adapter in the configuration file to use the HTTP event publisher.");
+            } else {
+                log.error("Error while activating the HTTP adapter service: " + e.getMessage(), e);
+            }
         }
     }
 

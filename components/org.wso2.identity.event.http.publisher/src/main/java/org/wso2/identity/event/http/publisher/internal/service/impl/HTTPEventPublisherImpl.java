@@ -109,7 +109,8 @@ public class HTTPEventPublisherImpl implements EventPublisher {
                         handleResponseCorrelationLog(request, requestStartTime,
                                 HTTPCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
                                 ex.getMessage());
-                        log.warn("Publishing event data to HTTP failed. ", ex);
+                        log.warn("Failed to publish event data to endpoint: " + url);
+                        log.debug("Publishing event data to HTTP failed. ", ex);
                         return null;
                     });
             log.debug("Event published successfully to the HTTP. Endpoint: " + url);
@@ -125,18 +126,20 @@ public class HTTPEventPublisherImpl implements EventPublisher {
         try {
             int responseCode = response.getStatusLine().getStatusCode();
             String responsePhrase = response.getStatusLine().getReasonPhrase();
-            log.debug("HTTP request completed. Response code: " + responseCode);
+            log.debug("HTTP request completed. Response code: " + responseCode +
+                    ", Endpoint: " + url + ", Event URI: " + eventUri);
 
             handleResponseCorrelationLog(request, requestStartTime,
                     HTTPCorrelationLogUtils.RequestStatus.COMPLETED.getStatus(),
                     String.valueOf(responseCode), responsePhrase);
             if (responseCode >= 200 && responseCode < 300) {
                 logDiagnosticSuccess(eventContext, url, eventUri);
-                log.debug("HTTP request completed. Response code: " + responseCode);
+                log.debug("HTTP request completed. Response code: " + responseCode +
+                        ", Endpoint: " + url + ", Event URI: " + eventUri);
             } else {
                 logDiagnosticFailure(eventContext, url, eventUri);
                 log.debug("HTTP request failed with response code: " + responseCode +
-                        " due to: " + responsePhrase);
+                        " due to: " + responsePhrase + ". Endpoint: " + url);
             }
         } finally {
             PrivilegedCarbonContext.endTenantFlow();

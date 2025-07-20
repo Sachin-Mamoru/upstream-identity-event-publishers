@@ -106,8 +106,7 @@ public class ClientManager {
                     asyncConnectionManager.getMaxTotal() + ", maxConnectionsPerRoute=" +
                     asyncConnectionManager.getDefaultMaxPerRoute());
         } catch (IOException e) {
-            throw HTTPAdapterUtil.handleServerException(
-                    ERROR_GETTING_ASYNC_CLIENT, e);
+            throw HTTPAdapterUtil.handleServerException(ERROR_GETTING_ASYNC_CLIENT, e);
         }
     }
 
