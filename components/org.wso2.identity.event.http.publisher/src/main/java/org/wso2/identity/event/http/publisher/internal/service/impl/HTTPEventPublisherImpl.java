@@ -22,6 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.slf4j.MDC;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherException;
 import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherServerException;
@@ -30,6 +31,7 @@ import org.wso2.carbon.identity.event.publisher.api.model.SecurityEventTokenPayl
 import org.wso2.carbon.identity.event.publisher.api.service.EventPublisher;
 import org.wso2.carbon.identity.webhook.management.api.exception.WebhookMgtException;
 import org.wso2.carbon.identity.webhook.management.api.model.Webhook;
+import org.wso2.carbon.utils.DiagnosticLog;
 import org.wso2.identity.event.http.publisher.api.exception.HTTPAdapterException;
 import org.wso2.identity.event.http.publisher.internal.component.ClientManager;
 import org.wso2.identity.event.http.publisher.internal.component.HTTPAdapterDataHolder;
@@ -39,11 +41,10 @@ import org.wso2.identity.event.http.publisher.internal.util.HTTPCorrelationLogUt
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import static org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils.CORRELATION_ID_MDC;
+import static org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils.TENANT_DOMAIN;
 import static org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage.ERROR_ACTIVE_WEBHOOKS_RETRIEVAL;
-import static org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage.ERROR_PUBLISHING_EVENT;
-import static org.wso2.identity.event.http.publisher.internal.util.HTTPAdapterUtil.logDiagnosticFailure;
-import static org.wso2.identity.event.http.publisher.internal.util.HTTPAdapterUtil.logDiagnosticSuccess;
-import static org.wso2.identity.event.http.publisher.internal.util.HTTPAdapterUtil.logPublishingEvent;
+import static org.wso2.identity.event.http.publisher.internal.util.HTTPAdapterUtil.printPublisherDiagnosticLog;
 import static org.wso2.identity.event.http.publisher.internal.util.HTTPCorrelationLogUtils.handleResponseCorrelationLog;
 
 /**
@@ -64,12 +65,7 @@ public class HTTPEventPublisherImpl implements EventPublisher {
     public void publish(SecurityEventTokenPayload eventPayload, EventContext eventContext)
             throws EventPublisherException {
 
-        try {
-            makeAsyncAPICall(eventPayload, eventContext);
-        } catch (HTTPAdapterException e) {
-            throw new EventPublisherServerException(ERROR_PUBLISHING_EVENT.getMessage(),
-                    ERROR_PUBLISHING_EVENT.getDescription(), ERROR_PUBLISHING_EVENT.getCode(), e);
-        }
+        makeAsyncAPICall(eventPayload, eventContext);
     }
 
     @Override
@@ -86,63 +82,101 @@ public class HTTPEventPublisherImpl implements EventPublisher {
         }
     }
 
-    private void makeAsyncAPICall(SecurityEventTokenPayload eventPayload, EventContext eventContext)
-            throws HTTPAdapterException {
-
-        ClientManager clientManager = HTTPAdapterDataHolder.getInstance().getClientManager();
+    private void makeAsyncAPICall(SecurityEventTokenPayload eventPayload, EventContext eventContext) {
 
         for (Webhook webhook : activeWebhooks) {
             String url = webhook.getEndpoint();
             String secret = webhook.getSecret();
-
-            HttpPost request = clientManager.createHttpPost(url, eventPayload, secret);
-
-            logPublishingEvent(url, eventContext, eventContext.getEventUri());
-
-            final long requestStartTime = System.currentTimeMillis();
-
-            CompletableFuture<HttpResponse> future = clientManager.executeAsync(request);
-
-            future.thenAccept(response -> handleAsyncResponse(
-                            response, request, requestStartTime, eventContext, url, eventContext.getEventUri()))
-                    .exceptionally(ex -> {
-                        handleResponseCorrelationLog(request, requestStartTime,
-                                HTTPCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
-                                ex.getMessage());
-                        log.warn("Failed to publish event data to endpoint: " + url);
-                        log.debug("Failed to publish event data to endpoint. ", ex);
-                        return null;
-                    });
-            log.debug("Event published successfully to the HTTP. Endpoint: " + url);
+            sendWithRetries(eventPayload, eventContext, url, secret,
+                    HTTPAdapterDataHolder.getInstance().getClientManager().getMaxRetries());
         }
     }
 
-    private static void handleAsyncResponse(HttpResponse response, HttpPost request, long requestStartTime,
-                                            EventContext eventContext, String url, String eventUri) {
+    private void sendWithRetries(SecurityEventTokenPayload eventPayload, EventContext eventContext,
+                                 String url, String secret, int retriesLeft) {
 
-        PrivilegedCarbonContext.startTenantFlow();
-        PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(eventContext.getTenantDomain());
-
+        ClientManager clientManager = HTTPAdapterDataHolder.getInstance().getClientManager();
+        final HttpPost request;
         try {
-            int responseCode = response.getStatusLine().getStatusCode();
-            String responsePhrase = response.getStatusLine().getReasonPhrase();
-            log.debug("HTTP request completed. Response code: " + responseCode +
-                    ", Endpoint: " + url + ", Event URI: " + eventUri);
-
-            handleResponseCorrelationLog(request, requestStartTime,
-                    HTTPCorrelationLogUtils.RequestStatus.COMPLETED.getStatus(),
-                    String.valueOf(responseCode), responsePhrase);
-            if (responseCode >= 200 && responseCode < 300) {
-                logDiagnosticSuccess(eventContext, url, eventUri);
-                log.debug("HTTP request completed. Response code: " + responseCode +
-                        ", Endpoint: " + url + ", Event URI: " + eventUri);
-            } else {
-                logDiagnosticFailure(eventContext, url, eventUri);
-                log.debug("HTTP request failed with response code: " + responseCode +
-                        " due to: " + responsePhrase + ". Endpoint: " + url);
-            }
-        } finally {
-            PrivilegedCarbonContext.endTenantFlow();
+            request = clientManager.createHttpPost(url, eventPayload, secret);
+        } catch (HTTPAdapterException e) {
+            printPublisherDiagnosticLog(eventContext, eventPayload, url,
+                    HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT, DiagnosticLog.ResultStatus.FAILED,
+                    "Failed to construct HTTP request for HTTP adapter publish.");
+            log.debug("Error constructing HTTP request for HTTP adapter publish. No retries will be attempted.", e);
+            return;
         }
+
+        printPublisherDiagnosticLog(eventContext, eventPayload, url,
+                HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT, DiagnosticLog.ResultStatus.SUCCESS,
+                "Publishing event data to endpoint.");
+
+        final long requestStartTime = System.currentTimeMillis();
+        final String correlationId =
+                request.getFirstHeader(HTTPAdapterConstants.Http.CORRELATION_ID_REQUEST_HEADER).getValue();
+
+        CompletableFuture<HttpResponse> future = clientManager.executeAsync(request);
+
+        future.whenCompleteAsync((response, throwable) -> {
+            try {
+                PrivilegedCarbonContext.startTenantFlow();
+                PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(eventContext.getTenantDomain());
+                MDC.put(CORRELATION_ID_MDC, correlationId);
+                MDC.put(TENANT_DOMAIN, eventContext.getTenantDomain());
+                if (throwable == null) {
+                    int status = response.getStatusLine().getStatusCode();
+                    if (status >= 200 && status < 300) {
+                        handleResponseCorrelationLog(request, requestStartTime,
+                                HTTPCorrelationLogUtils.RequestStatus.COMPLETED.getStatus(),
+                                String.valueOf(status), response.getStatusLine().getReasonPhrase());
+                        printPublisherDiagnosticLog(eventContext, eventPayload, url,
+                                HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
+                                DiagnosticLog.ResultStatus.SUCCESS, "Event data published to endpoint.");
+                        log.debug("HTTP request completed. Response code: " + status +
+                                ", Endpoint: " + url + ", Event URI: " + eventContext.getEventUri());
+                    } else {
+                        if (retriesLeft > 0) {
+                            printPublisherDiagnosticLog(eventContext, eventPayload, url,
+                                    HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
+                                    DiagnosticLog.ResultStatus.FAILED,
+                                    "Publish attempt failed with status code: " + status +
+                                            ". Retrying… (" + retriesLeft + " attempts left)");
+                            sendWithRetries(eventPayload, eventContext, url, secret, retriesLeft - 1);
+                        } else {
+                            handleResponseCorrelationLog(request, requestStartTime,
+                                    HTTPCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
+                                    String.valueOf(status), response.getStatusLine().getReasonPhrase());
+                            printPublisherDiagnosticLog(eventContext, eventPayload, url,
+                                    HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
+                                    DiagnosticLog.ResultStatus.FAILED,
+                                    "Failed to publish event data to endpoint. Status code: " + status);
+                        }
+                    }
+                } else {
+                    if (retriesLeft > 0) {
+                        printPublisherDiagnosticLog(eventContext, eventPayload, url,
+                                HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
+                                DiagnosticLog.ResultStatus.FAILED,
+                                "Publish attempt failed due to exception. Retrying… (" +
+                                        retriesLeft + " attempts left)");
+                        sendWithRetries(eventPayload, eventContext, url, secret, retriesLeft - 1);
+                    } else {
+                        handleResponseCorrelationLog(request, requestStartTime,
+                                HTTPCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
+                                throwable.getMessage());
+                        printPublisherDiagnosticLog(eventContext, eventPayload, url,
+                                HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
+                                DiagnosticLog.ResultStatus.FAILED,
+                                "Failed to publish event data to endpoint.");
+                        log.warn("Failed to publish event data to endpoint: " + url);
+                        log.debug("Failed to publish event data to endpoint. ", throwable);
+                    }
+                }
+            } finally {
+                MDC.remove(CORRELATION_ID_MDC);
+                MDC.remove(TENANT_DOMAIN);
+                PrivilegedCarbonContext.endTenantFlow();
+            }
+        }, clientManager.getAsyncCallbackExecutor());
     }
 }

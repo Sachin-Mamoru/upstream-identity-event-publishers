@@ -19,15 +19,22 @@
 package org.wso2.identity.event.http.publisher.internal.util;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.slf4j.MDC;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
 import org.wso2.carbon.identity.event.publisher.api.model.EventContext;
+import org.wso2.carbon.identity.event.publisher.api.model.SecurityEventTokenPayload;
 import org.wso2.carbon.utils.DiagnosticLog;
 import org.wso2.identity.event.http.publisher.api.exception.HTTPAdapterClientException;
 import org.wso2.identity.event.http.publisher.api.exception.HTTPAdapterServerException;
 import org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage;
 import org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants;
+
+import java.util.UUID;
+
+import static org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils.CORRELATION_ID_MDC;
 
 /**
  * Utility class for HTTPAdapter.
@@ -38,6 +45,21 @@ public class HTTPAdapterUtil {
 
     private HTTPAdapterUtil() {
 
+    }
+
+    /**
+     * Get the correlation ID.
+     *
+     * @return Correlation ID.
+     */
+    public static String getCorrelationID() {
+
+        String correlationID = MDC.get(CORRELATION_ID_MDC);
+        if (StringUtils.isBlank(correlationID)) {
+            correlationID = UUID.randomUUID().toString();
+            MDC.put(CORRELATION_ID_MDC, correlationID);
+        }
+        return correlationID;
     }
 
     /**
@@ -75,78 +97,32 @@ public class HTTPAdapterUtil {
     }
 
     /**
-     * Log the diagnostic success.
+     * Print diagnostic log for publisher operations.
      *
      * @param eventContext Event context.
-     * @param url          URL.
-     * @param endpoint     Endpoint.
+     * @param eventPayload Event payload.
+     * @param endpoint     Endpoint URL.
+     * @param action       Action performed.
+     * @param status       Result status.
+     * @param message      Result message.
      */
-    public static void logDiagnosticSuccess(EventContext eventContext, String url, String endpoint) {
+    public static void printPublisherDiagnosticLog(EventContext eventContext, SecurityEventTokenPayload eventPayload,
+                                                   String endpoint, String action, DiagnosticLog.ResultStatus status,
+                                                   String message) {
 
-        if (LoggerUtils.isDiagnosticLogsEnabled()) {
-            DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog
-                    .DiagnosticLogBuilder(HTTPAdapterConstants.LogConstants.HTTP_ADAPTER,
-                    HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT);
-            diagnosticLogBuilder
-                    .inputParam(HTTPAdapterConstants.LogConstants.InputKeys.URL, url)
-                    .inputParam(HTTPAdapterConstants.LogConstants.InputKeys.TENANT_DOMAIN,
-                            eventContext.getTenantDomain())
-                    .inputParam(HTTPAdapterConstants.LogConstants.InputKeys.ENDPOINT, endpoint)
-                    .resultMessage("Event data published to endpoint.")
-                    .resultStatus(DiagnosticLog.ResultStatus.SUCCESS)
-                    .logDetailLevel(DiagnosticLog.LogDetailLevel.INTERNAL_SYSTEM);
-            LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
-        }
-    }
-
-    /**
-     * Log the diagnostic failure.
-     *
-     * @param eventContext Event context.
-     * @param url          URL.
-     * @param endpoint     Endpoint.
-     */
-    public static void logDiagnosticFailure(EventContext eventContext, String url, String endpoint) {
-
-        if (LoggerUtils.isDiagnosticLogsEnabled()) {
-            DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog
-                    .DiagnosticLogBuilder(HTTPAdapterConstants.LogConstants.HTTP_ADAPTER,
-                    HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT);
-            diagnosticLogBuilder
-                    .inputParam(HTTPAdapterConstants.LogConstants.InputKeys.URL, url)
-                    .inputParam(HTTPAdapterConstants.LogConstants.InputKeys.TENANT_DOMAIN,
-                            eventContext.getTenantDomain())
-                    .inputParam(HTTPAdapterConstants.LogConstants.InputKeys.ENDPOINT, endpoint)
-                    .resultMessage("Failed to publish event data to endpoint.")
-                    .resultStatus(DiagnosticLog.ResultStatus.FAILED)
-                    .logDetailLevel(DiagnosticLog.LogDetailLevel.INTERNAL_SYSTEM);
-            LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
-        }
-    }
-
-    /**
-     * Log the publishing event.
-     *
-     * @param url          URL.
-     * @param eventContext Event context.
-     * @param endpoint     Endpoint.
-     */
-    public static void logPublishingEvent(String url, EventContext eventContext, String endpoint) {
-
-        log.debug("Publishing event data to HTTP. URL: " + url + " tenant domain: " +
-                eventContext.getTenantDomain());
         if (LoggerUtils.isDiagnosticLogsEnabled()) {
             DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
-                    HTTPAdapterConstants.LogConstants.HTTP_ADAPTER,
-                    HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT);
+                    HTTPAdapterConstants.LogConstants.HTTP_ADAPTER, action);
             diagnosticLogBuilder
-                    .inputParam(HTTPAdapterConstants.LogConstants.InputKeys.URL, url)
-                    .inputParam(HTTPAdapterConstants.LogConstants.InputKeys.TENANT_DOMAIN,
-                            eventContext.getTenantDomain())
                     .inputParam(HTTPAdapterConstants.LogConstants.InputKeys.ENDPOINT, endpoint)
-                    .resultMessage("Publishing event data to endpoint.")
-                    .resultStatus(DiagnosticLog.ResultStatus.SUCCESS)
-                    .logDetailLevel(DiagnosticLog.LogDetailLevel.INTERNAL_SYSTEM);
+                    .inputParam(HTTPAdapterConstants.LogConstants.InputKeys.EVENT_URI, eventContext.getEventUri())
+                    .inputParam(HTTPAdapterConstants.LogConstants.InputKeys.EVENT_PROFILE_NAME,
+                            eventContext.getEventProfileName())
+                    .inputParam(HTTPAdapterConstants.LogConstants.InputKeys.EVENTS,
+                            String.join(",", eventPayload.getEvents().keySet()))
+                    .resultMessage(message)
+                    .resultStatus(status)
+                    .logDetailLevel(DiagnosticLog.LogDetailLevel.APPLICATION);
             LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
         }
     }

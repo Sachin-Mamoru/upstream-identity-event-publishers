@@ -30,6 +30,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.util.EntityUtils;
 import org.wso2.carbon.identity.topic.management.api.exception.TopicManagementException;
 import org.wso2.carbon.identity.topic.management.api.service.TopicManager;
+import org.wso2.carbon.utils.DiagnosticLog;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterServerException;
@@ -61,6 +62,7 @@ import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterU
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleServerException;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleTopicMgtException;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.parseEventHubResponse;
+import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.printTopicManagerDiagnosticLog;
 
 /**
  * OSGi service for register topics using web sub hub.
@@ -131,6 +133,9 @@ public class WebSubTopicManagerImpl implements TopicManager {
             WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
             final long requestStartTime = System.currentTimeMillis();
 
+            printTopicManagerDiagnosticLog(topic, operation,
+                    DiagnosticLog.ResultStatus.SUCCESS, "Initiated topic " + operation + " request to WebSubHub.");
+
             try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.execute(httpPost)) {
 
                 StatusLine statusLine = response.getStatusLine();
@@ -141,6 +146,10 @@ public class WebSubTopicManagerImpl implements TopicManager {
                     attempt++;
                     log.debug("Retrying topic management API call, attempt " + attempt + " for topic: " + topic);
                     Thread.sleep(RETRY_DELAY_MS);
+                    printTopicManagerDiagnosticLog(topic, operation,
+                            DiagnosticLog.ResultStatus.SUCCESS,
+                            "Retry topic " + operation + " request to WebSubHub. due to " +
+                                    "server error, attempt: " + attempt);
                     continue;
                 }
 
@@ -153,13 +162,22 @@ public class WebSubTopicManagerImpl implements TopicManager {
                         String responseString = EntityUtils.toString(entity, StandardCharsets.UTF_8);
                         if (RESPONSE_FOR_SUCCESSFUL_OPERATION.equals(responseString)) {
                             log.debug("Success WebSub Hub operation: " + operation + ", topic: " + topic);
+                            printTopicManagerDiagnosticLog(topic, operation,
+                                    DiagnosticLog.ResultStatus.SUCCESS,
+                                    "Success topic " + operation + " request to WebSubHub.");
                         } else {
+                            printTopicManagerDiagnosticLog(topic, operation,
+                                    DiagnosticLog.ResultStatus.FAILED,
+                                    "Received invalid response to topic " + operation + " request to WebSubHub.");
                             throw handleServerException(ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB, null, topic,
                                     operation, responseString);
                         }
                     } else {
                         String message =
                                 String.format(ERROR_EMPTY_RESPONSE_FROM_WEBSUB_HUB.getDescription(), topic, operation);
+                        printTopicManagerDiagnosticLog(topic, operation,
+                                DiagnosticLog.ResultStatus.FAILED,
+                                "Received empty response to topic " + operation + " request to WebSubHub.");
                         throw new WebSubAdapterServerException(message, ERROR_EMPTY_RESPONSE_FROM_WEBSUB_HUB.getCode());
                     }
                 } else if ((responseCode == HttpStatus.SC_CONFLICT && operation.equals(REGISTER)) ||
@@ -187,6 +205,10 @@ public class WebSubTopicManagerImpl implements TopicManager {
                             if (errorMsg.equals(hubResponse.get(HUB_REASON))) {
                                 log.error(String.format(TOPIC_DEREGISTRATION_FAILURE_ACTIVE_SUBS.getDescription(),
                                         topic, hubResponse.get(HUB_ACTIVE_SUBS)));
+                                printTopicManagerDiagnosticLog(topic, operation,
+                                        DiagnosticLog.ResultStatus.FAILED,
+                                        "Error occurred while processing topic " + operation +
+                                                " request to WebSubHub.");
                                 throw handleClientException(TOPIC_DEREGISTRATION_FAILURE_ACTIVE_SUBS, topic,
                                         hubResponse.get(HUB_ACTIVE_SUBS));
                             }
@@ -200,6 +222,10 @@ public class WebSubTopicManagerImpl implements TopicManager {
                     String message = String.format(ERROR_BACKEND_ERROR_FROM_WEBSUB_HUB.getDescription(),
                             topic, operation, responseString);
                     log.error(message + ", Response code:" + responseCode);
+                    printTopicManagerDiagnosticLog(topic, operation,
+                            DiagnosticLog.ResultStatus.FAILED,
+                            "Error occurred while executing topic " + operation +
+                                    " request to WebSubHub.");
                     throw new WebSubAdapterServerException(message, ERROR_BACKEND_ERROR_FROM_WEBSUB_HUB.getCode());
                 }
 
@@ -212,15 +238,31 @@ public class WebSubTopicManagerImpl implements TopicManager {
                             " for topic: " + topic);
                     try {
                         Thread.sleep(RETRY_DELAY_MS);
+                        printTopicManagerDiagnosticLog(topic, operation,
+                                DiagnosticLog.ResultStatus.SUCCESS,
+                                "Retry topic " + operation + " request to WebSubHub due to network error, attempt." +
+                                        attempt);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
+                        printTopicManagerDiagnosticLog(topic, operation,
+                                DiagnosticLog.ResultStatus.FAILED,
+                                "Error occurred while executing topic " + operation +
+                                        " request to WebSubHub.");
                         throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, ie, topic, tenantDomain);
                     }
                     continue;
                 }
+                printTopicManagerDiagnosticLog(topic, operation,
+                        DiagnosticLog.ResultStatus.FAILED,
+                        "Error occurred while executing topic " + operation +
+                                " request to WebSubHub.");
                 throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, e, topic, tenantDomain);
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
+                printTopicManagerDiagnosticLog(topic, operation,
+                        DiagnosticLog.ResultStatus.FAILED,
+                        "Error occurred while executing topic " + operation +
+                                " request to WebSubHub.");
                 throw handleServerException(ERROR_REGISTERING_HUB_TOPIC, ie, topic, tenantDomain);
             }
         }

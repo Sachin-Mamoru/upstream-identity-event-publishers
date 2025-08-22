@@ -33,6 +33,7 @@ import org.wso2.carbon.identity.event.publisher.api.constant.ErrorMessage;
 import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherException;
 import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherServerException;
 import org.wso2.carbon.identity.event.publisher.api.model.EventContext;
+import org.wso2.carbon.identity.event.publisher.api.model.SecurityEventTokenPayload;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.carbon.identity.topic.management.api.exception.TopicManagementException;
 import org.wso2.carbon.utils.DiagnosticLog;
@@ -54,7 +55,6 @@ import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdap
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_EMPTY_RESPONSE_FROM_WEBSUB_HUB;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_INVALID_RESPONSE_FROM_WEBSUB_HUB;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.ErrorMessages.ERROR_INVALID_WEB_SUB_HUB_BASE_URL;
-import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.CORRELATION_ID_REQUEST_HEADER;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_MODE;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.HUB_TOPIC;
 import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.RESPONSE_FOR_SUCCESSFUL_OPERATION;
@@ -143,8 +143,8 @@ public class WebSubHubAdapterUtil {
     /**
      * Handle server exceptions.
      *
-     * @param error     Error message.
-     * @param data      Data.
+     * @param error Error message.
+     * @param data  Data.
      * @return EventPublisherException.
      */
     public static EventPublisherException handleServerException(
@@ -209,86 +209,80 @@ public class WebSubHubAdapterUtil {
      */
     public static void handleResponseCorrelationLog(HttpPost request, long requestStartTime, String... otherParams) {
 
-        try {
-            MDC.put(CORRELATION_ID_MDC, request.getFirstHeader(CORRELATION_ID_REQUEST_HEADER).getValue());
-            WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(request, requestStartTime, otherParams);
-        } finally {
-            MDC.remove(CORRELATION_ID_MDC);
-        }
+        WebSubHubCorrelationLogUtils.triggerCorrelationLogForResponse(request, requestStartTime, otherParams);
     }
 
     /**
-     * Log the diagnostic success.
+     * Print diagnostic log for publisher operations.
      *
      * @param eventContext Event context.
-     * @param url          URL.
-     * @param topic        Topic.
+     * @param eventPayload Event payload.
+     * @param action       Action performed.
+     * @param status       Result status.
+     * @param message      Result message.
      */
-    public static void logDiagnosticSuccess(EventContext eventContext, String url, String topic) {
+    public static void printPublisherDiagnosticLog(EventContext eventContext, SecurityEventTokenPayload eventPayload,
+                                                   String action, DiagnosticLog.ResultStatus status, String message) {
 
-        if (LoggerUtils.isDiagnosticLogsEnabled()) {
-            DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog
-                    .DiagnosticLogBuilder(WebSubHubAdapterConstants.LogConstants.WEB_SUB_HUB_ADAPTER,
-                    WebSubHubAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT);
-            diagnosticLogBuilder
-                    .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.URL, url)
-                    .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.TENANT_DOMAIN,
-                            eventContext.getTenantDomain())
-                    .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.TOPIC, topic)
-                    .resultMessage("Event data published to WebSubHub.")
-                    .resultStatus(DiagnosticLog.ResultStatus.SUCCESS)
-                    .logDetailLevel(DiagnosticLog.LogDetailLevel.INTERNAL_SYSTEM);
-            LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
-        }
-    }
-
-    /**
-     * Log the diagnostic failure.
-     *
-     * @param eventContext Event context.
-     * @param url          URL.
-     * @param topic        Topic.
-     */
-    public static void logDiagnosticFailure(EventContext eventContext, String url, String topic) {
-
-        if (LoggerUtils.isDiagnosticLogsEnabled()) {
-            DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog
-                    .DiagnosticLogBuilder(WebSubHubAdapterConstants.LogConstants.WEB_SUB_HUB_ADAPTER,
-                    WebSubHubAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT);
-            diagnosticLogBuilder
-                    .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.URL, url)
-                    .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.TENANT_DOMAIN,
-                            eventContext.getTenantDomain())
-                    .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.TOPIC, topic)
-                    .resultMessage("Failed to publish event data to WebSubHub.")
-                    .resultStatus(DiagnosticLog.ResultStatus.FAILED)
-                    .logDetailLevel(DiagnosticLog.LogDetailLevel.INTERNAL_SYSTEM);
-            LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
-        }
-    }
-
-    /**
-     * Log the publishing event.
-     *
-     * @param url          URL.
-     * @param eventContext Event context.
-     * @param topic        Topic.
-     */
-    public static void logPublishingEvent(String url, EventContext eventContext, String topic) {
-
-        log.debug("Publishing event data to WebSubHub. URL: " + url + " tenant domain: " +
-                eventContext.getTenantDomain());
         if (LoggerUtils.isDiagnosticLogsEnabled()) {
             DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
-                    WebSubHubAdapterConstants.LogConstants.WEB_SUB_HUB_ADAPTER,
-                    WebSubHubAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT);
+                    WebSubHubAdapterConstants.LogConstants.WEB_SUB_HUB_ADAPTER, action);
             diagnosticLogBuilder
-                    .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.URL, url)
-                    .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.TENANT_DOMAIN,
-                            eventContext.getTenantDomain())
+                    .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.EVENT_URI, eventContext.getEventUri())
+                    .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.EVENT_PROFILE_NAME,
+                            eventContext.getEventProfileName())
+                    .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.EVENTS,
+                            String.join(",", eventPayload.getEvents().keySet()))
+                    .resultMessage(message)
+                    .resultStatus(status)
+                    .logDetailLevel(DiagnosticLog.LogDetailLevel.APPLICATION);
+            LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+        }
+    }
+
+    /**
+     * Print diagnostic log for subscriber operations.
+     *
+     * @param channelToSubscribe Channel to subscribe.
+     * @param callbackUrl        Callback URL.
+     * @param action             Action performed.
+     * @param status             Result status.
+     * @param message            Result message.
+     */
+    public static void printSubscriberDiagnosticLog(String channelToSubscribe, String callbackUrl, String action,
+                                                    DiagnosticLog.ResultStatus status, String message) {
+
+        if (LoggerUtils.isDiagnosticLogsEnabled()) {
+            DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
+                    WebSubHubAdapterConstants.LogConstants.WEB_SUB_HUB_ADAPTER, action);
+            diagnosticLogBuilder
+                    .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.CHANNEL, channelToSubscribe)
+                    .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.ENDPOINT, callbackUrl)
+                    .resultMessage(message)
+                    .resultStatus(status)
+                    .logDetailLevel(DiagnosticLog.LogDetailLevel.APPLICATION);
+            LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+        }
+    }
+
+    /**
+     * Print diagnostic log for topic manager operations.
+     *
+     * @param topic   Topic.
+     * @param action  Action performed.
+     * @param status  Result status.
+     * @param message Result message.
+     */
+    public static void printTopicManagerDiagnosticLog(String topic, String action,
+                                                      DiagnosticLog.ResultStatus status, String message) {
+
+        if (LoggerUtils.isDiagnosticLogsEnabled()) {
+            DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
+                    WebSubHubAdapterConstants.LogConstants.WEB_SUB_HUB_ADAPTER, action);
+            diagnosticLogBuilder
                     .inputParam(WebSubHubAdapterConstants.LogConstants.InputKeys.TOPIC, topic)
-                    .resultMessage("Publishing event data to WebSubHub.")
-                    .resultStatus(DiagnosticLog.ResultStatus.SUCCESS)
+                    .resultMessage(message)
+                    .resultStatus(status)
                     .logDetailLevel(DiagnosticLog.LogDetailLevel.INTERNAL_SYSTEM);
             LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
         }
