@@ -30,10 +30,13 @@ import org.wso2.carbon.identity.event.publisher.api.exception.EventPublisherExce
 import org.wso2.carbon.identity.event.publisher.api.model.EventContext;
 import org.wso2.carbon.identity.event.publisher.api.model.SecurityEventTokenPayload;
 import org.wso2.identity.event.websubhub.publisher.config.WebSubAdapterConfiguration;
+import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
 import org.wso2.identity.event.websubhub.publisher.internal.ClientManager;
 import org.wso2.identity.event.websubhub.publisher.internal.WebSubHubAdapterDataHolder;
+import org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -42,6 +45,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants.Http.CORRELATION_ID_REQUEST_HEADER;
 
 /**
  * Unit tests for the WebSubHubAdapterServiceImpl class.
@@ -95,10 +99,25 @@ public class WebSubEventPublisherImplTest {
     }
 
     @Test
-    public void testPublishSuccess() throws EventPublisherException {
+    public void testPublishSuccess() throws EventPublisherException, WebSubAdapterException {
 
-        try (MockedStatic<LoggerUtils> mockedLoggerUtils = mockStatic(LoggerUtils.class)) {
+        try (
+                MockedStatic<LoggerUtils> mockedLoggerUtils = mockStatic(LoggerUtils.class);
+                MockedStatic<WebSubHubAdapterUtil> mockedAdapterUtil = mockStatic(WebSubHubAdapterUtil.class)
+        ) {
             mockedLoggerUtils.when(LoggerUtils::isDiagnosticLogsEnabled).thenReturn(false);
+
+            // Mock static utility methods used in publish
+            mockedAdapterUtil.when(() -> WebSubHubAdapterUtil.constructHubTopic(any(), any(), any(), any()))
+                    .thenReturn("mock-topic");
+            mockedAdapterUtil.when(WebSubHubAdapterUtil::getWebSubBaseURL)
+                    .thenReturn("http://mock-websub-hub.com");
+            mockedAdapterUtil.when(
+                            () -> WebSubHubAdapterUtil.printPublisherDiagnosticLog(any(), any(), any(), any(), any()))
+                    .then(invocation -> null);
+
+            // Mock ClientManager.getMaxRetries()
+            when(mockClientManager.getMaxRetries()).thenReturn(2);
 
             // Mock inputs
             EventContext eventContext = EventContext.builder()
@@ -113,9 +132,17 @@ public class WebSubEventPublisherImplTest {
                     .aud("audience")
                     .build();
 
+            // Mock HttpPost and its header
+            org.apache.http.client.methods.HttpPost mockHttpPost = mock(org.apache.http.client.methods.HttpPost.class);
+            org.apache.http.Header mockHeader = mock(org.apache.http.Header.class);
+            when(mockHttpPost.getFirstHeader(CORRELATION_ID_REQUEST_HEADER)).thenReturn(mockHeader);
+            when(mockHeader.getValue()).thenReturn("mock-correlation-id");
+
             // Mock ClientManager behavior to simulate success
             CompletableFuture<HttpResponse> future = CompletableFuture.completedFuture(mockHttpResponse);
             when(mockClientManager.executeAsync(any())).thenReturn(future);
+            when(mockClientManager.createHttpPost(any(), any())).thenReturn(mockHttpPost);
+            when(mockClientManager.getAsyncCallbackExecutor()).thenReturn((Executor) Runnable::run);
 
             // Execute and verify no exception is thrown
             adapterService.publish(payload, eventContext);
