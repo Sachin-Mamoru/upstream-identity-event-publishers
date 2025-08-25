@@ -168,7 +168,7 @@ public class WebSubEventPublisherImpl implements EventPublisher {
                             printPublisherDiagnosticLog(eventContext, eventPayload,
                                     WebSubHubAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
                                     DiagnosticLog.ResultStatus.FAILED,
-                                    "Error while reading WebSubHub event publisher");
+                                    "Error while reading WebSubHub event publisher.");
                             log.debug("Error while reading WebSubHub response.", e);
                         }
                     }
