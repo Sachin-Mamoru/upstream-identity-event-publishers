@@ -44,7 +44,7 @@
         <developerConnection>scm:git:https://github.com/wso2-extensions/identity-event-publishers.git
         </developerConnection>
         <connection>scm:git:https://github.com/wso2-extensions/identity-event-publishers.git</connection>
-        <tag>HEAD</tag>
+        <tag>v1.0.31</tag>
     </scm>
 
     <dependencyManagement>
