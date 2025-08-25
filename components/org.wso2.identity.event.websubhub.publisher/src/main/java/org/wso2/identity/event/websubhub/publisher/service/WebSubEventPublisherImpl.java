@@ -155,7 +155,7 @@ public class WebSubEventPublisherImpl implements EventPublisher {
                                 WebSubHubAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
                                 DiagnosticLog.ResultStatus.FAILED,
                                 "Failed to publish event data to WebSubHub. Status code: " + status +
-                                        ". Maximum retries exceeded.");
+                                        ". Maximum retries reached.");
                         try {
                             if (response.getEntity() != null) {
                                 String body = EntityUtils.toString(response.getEntity());
@@ -187,7 +187,7 @@ public class WebSubEventPublisherImpl implements EventPublisher {
                     printPublisherDiagnosticLog(eventContext, eventPayload,
                             WebSubHubAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
                             DiagnosticLog.ResultStatus.FAILED,
-                            "Failed to publish event data to WebSubHub. Maximum retries exceeded.");
+                            "Failed to publish event data to WebSubHub. Maximum retries reached.");
                 }
             } finally {
                 MDC.remove(CORRELATION_ID_MDC);

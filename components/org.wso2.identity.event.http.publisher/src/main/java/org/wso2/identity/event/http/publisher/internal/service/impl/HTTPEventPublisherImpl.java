@@ -153,7 +153,7 @@ public class HTTPEventPublisherImpl implements EventPublisher {
                                 HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
                                 DiagnosticLog.ResultStatus.FAILED,
                                 "Failed to publish event data to endpoint. Status code: " + status +
-                                        ". Maximum retries exceeded.");
+                                        ". Maximum retries reached.");
                     }
                 } else {
                     if (retriesLeft > 0) {
@@ -170,8 +170,8 @@ public class HTTPEventPublisherImpl implements EventPublisher {
                     printPublisherDiagnosticLog(eventContext, eventPayload, url,
                             HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
                             DiagnosticLog.ResultStatus.FAILED,
-                            "Failed to publish event data to endpoint. Maximum retries exceeded.");
-                    log.warn("Failed to publish event data to endpoint: " + url + "Maximum retries exceeded.");
+                            "Failed to publish event data to endpoint. Maximum retries reached.");
+                    log.warn("Failed to publish event data to endpoint: " + url + "Maximum retries reached.");
                     log.debug("Failed to publish event data to endpoint: " + url, throwable);
                 }
             } finally {
