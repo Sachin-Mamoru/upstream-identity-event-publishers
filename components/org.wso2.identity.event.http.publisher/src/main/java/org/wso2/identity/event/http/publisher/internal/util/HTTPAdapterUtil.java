@@ -19,10 +19,8 @@
 package org.wso2.identity.event.http.publisher.internal.util;
 
 import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.slf4j.MDC;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
 import org.wso2.carbon.identity.event.publisher.api.model.EventContext;
 import org.wso2.carbon.identity.event.publisher.api.model.SecurityEventTokenPayload;
@@ -31,10 +29,6 @@ import org.wso2.identity.event.http.publisher.api.exception.HTTPAdapterClientExc
 import org.wso2.identity.event.http.publisher.api.exception.HTTPAdapterServerException;
 import org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage;
 import org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants;
-
-import java.util.UUID;
-
-import static org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils.CORRELATION_ID_MDC;
 
 /**
  * Utility class for HTTPAdapter.
@@ -52,14 +46,9 @@ public class HTTPAdapterUtil {
      *
      * @return Correlation ID.
      */
-    public static String getCorrelationID() {
+    public static String getCorrelationID(SecurityEventTokenPayload eventTokenPayload) {
 
-        String correlationID = MDC.get(CORRELATION_ID_MDC);
-        if (StringUtils.isBlank(correlationID)) {
-            correlationID = UUID.randomUUID().toString();
-            MDC.put(CORRELATION_ID_MDC, correlationID);
-        }
-        return correlationID;
+        return eventTokenPayload.getRci();
     }
 
     /**

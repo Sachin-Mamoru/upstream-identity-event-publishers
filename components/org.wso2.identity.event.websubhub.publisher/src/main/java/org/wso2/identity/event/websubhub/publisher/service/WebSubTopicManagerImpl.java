@@ -148,7 +148,7 @@ public class WebSubTopicManagerImpl implements TopicManager {
                     Thread.sleep(RETRY_DELAY_MS);
                     printTopicManagerDiagnosticLog(topic, operation,
                             DiagnosticLog.ResultStatus.SUCCESS,
-                            "Retry topic " + operation + " request to WebSubHub. due to " +
+                            "Retrying topic " + operation + " request to WebSubHub. due to " +
                                     "server error, attempt: " + attempt);
                     continue;
                 }
@@ -240,7 +240,7 @@ public class WebSubTopicManagerImpl implements TopicManager {
                         Thread.sleep(RETRY_DELAY_MS);
                         printTopicManagerDiagnosticLog(topic, operation,
                                 DiagnosticLog.ResultStatus.SUCCESS,
-                                "Retry topic " + operation + " request to WebSubHub due to network error, attempt." +
+                                "Retrying topic " + operation + " request to WebSubHub due to network error, attempt." +
                                         attempt);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();

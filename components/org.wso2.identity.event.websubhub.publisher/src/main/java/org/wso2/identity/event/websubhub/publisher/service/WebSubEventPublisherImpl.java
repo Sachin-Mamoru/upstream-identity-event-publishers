@@ -146,30 +146,30 @@ public class WebSubEventPublisherImpl implements EventPublisher {
                                     "Publish attempt failed with status code: " + status +
                                             ". Retrying… (" + retriesLeft + " attempts left)");
                             sendWithRetries(eventPayload, eventContext, url, retriesLeft - 1);
-                        } else {
-                            handleResponseCorrelationLog(request, requestStartTime,
-                                    WebSubHubCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
-                                    String.valueOf(status),
-                                    response.getStatusLine().getReasonPhrase());
+                        }
+                        handleResponseCorrelationLog(request, requestStartTime,
+                                WebSubHubCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
+                                String.valueOf(status),
+                                response.getStatusLine().getReasonPhrase());
+                        printPublisherDiagnosticLog(eventContext, eventPayload,
+                                WebSubHubAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
+                                DiagnosticLog.ResultStatus.FAILED,
+                                "Failed to publish event data to WebSubHub. Status code: " + status +
+                                        ". Maximum retries exceeded.");
+                        try {
+                            if (response.getEntity() != null) {
+                                String body = EntityUtils.toString(response.getEntity());
+                                log.debug("Error response data: " + body);
+                            } else {
+                                log.debug("WebSubHub event publisher received " + status +
+                                        ". Response entity is null.");
+                            }
+                        } catch (IOException e) {
                             printPublisherDiagnosticLog(eventContext, eventPayload,
                                     WebSubHubAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
                                     DiagnosticLog.ResultStatus.FAILED,
-                                    "Failed to publish event data to WebSubHub. Status code: " + status);
-                            try {
-                                if (response.getEntity() != null) {
-                                    String body = EntityUtils.toString(response.getEntity());
-                                    log.debug("Error response data: " + body);
-                                } else {
-                                    log.debug("WebSubHub event publisher received " + status +
-                                            ". Response entity is null.");
-                                }
-                            } catch (IOException e) {
-                                printPublisherDiagnosticLog(eventContext, eventPayload,
-                                        WebSubHubAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
-                                        DiagnosticLog.ResultStatus.FAILED,
-                                        "Error while reading WebSubHub event publisher");
-                                log.debug("Error while reading WebSubHub response.", e);
-                            }
+                                    "Error while reading WebSubHub event publisher");
+                            log.debug("Error while reading WebSubHub response.", e);
                         }
                     }
                 } else {
@@ -180,15 +180,14 @@ public class WebSubEventPublisherImpl implements EventPublisher {
                                 "Publish attempt failed due to exception. Retrying… (" +
                                         retriesLeft + " attempts left)");
                         sendWithRetries(eventPayload, eventContext, url, retriesLeft - 1);
-                    } else {
-                        handleResponseCorrelationLog(request, requestStartTime,
-                                WebSubHubCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
-                                throwable.getMessage());
-                        printPublisherDiagnosticLog(eventContext, eventPayload,
-                                WebSubHubAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
-                                DiagnosticLog.ResultStatus.FAILED,
-                                "Failed to publish event data to WebSubHub.");
                     }
+                    handleResponseCorrelationLog(request, requestStartTime,
+                            WebSubHubCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
+                            throwable.getMessage());
+                    printPublisherDiagnosticLog(eventContext, eventPayload,
+                            WebSubHubAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
+                            DiagnosticLog.ResultStatus.FAILED,
+                            "Failed to publish event data to WebSubHub. Maximum retries exceeded.");
                 }
             } finally {
                 MDC.remove(CORRELATION_ID_MDC);

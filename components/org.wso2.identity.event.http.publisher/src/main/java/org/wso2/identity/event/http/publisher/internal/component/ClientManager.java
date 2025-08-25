@@ -63,7 +63,6 @@ import static org.wso2.identity.event.http.publisher.internal.constant.ErrorMess
 import static org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage.ERROR_CREATING_SSL_CONTEXT;
 import static org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage.ERROR_GETTING_ASYNC_CLIENT;
 import static org.wso2.identity.event.http.publisher.internal.constant.ErrorMessage.ERROR_PUBLISHING_EVENT_INVALID_PAYLOAD;
-import static org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants.Http.CORRELATION_ID_REQUEST_HEADER;
 import static org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants.Http.HMAC_SHA256_ALGORITHM;
 import static org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants.Http.X_WSO2_EVENT_SIGNATURE;
 
@@ -206,7 +205,6 @@ public class ClientManager {
         HttpPost request = new HttpPost(url);
         request.setHeader(ACCEPT, ContentType.APPLICATION_JSON.getMimeType());
         request.setHeader(CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-        request.setHeader(CORRELATION_ID_REQUEST_HEADER, HTTPAdapterUtil.getCorrelationID());
 
         ObjectMapper mapper = new ObjectMapper();
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);

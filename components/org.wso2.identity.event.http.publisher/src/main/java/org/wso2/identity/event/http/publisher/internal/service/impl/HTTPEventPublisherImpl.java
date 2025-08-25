@@ -18,6 +18,7 @@
 
 package org.wso2.identity.event.http.publisher.internal.service.impl;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
@@ -36,6 +37,7 @@ import org.wso2.identity.event.http.publisher.api.exception.HTTPAdapterException
 import org.wso2.identity.event.http.publisher.internal.component.ClientManager;
 import org.wso2.identity.event.http.publisher.internal.component.HTTPAdapterDataHolder;
 import org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants;
+import org.wso2.identity.event.http.publisher.internal.util.HTTPAdapterUtil;
 import org.wso2.identity.event.http.publisher.internal.util.HTTPCorrelationLogUtils;
 
 import java.util.List;
@@ -112,8 +114,7 @@ public class HTTPEventPublisherImpl implements EventPublisher {
                 "Publishing event data to endpoint.");
 
         final long requestStartTime = System.currentTimeMillis();
-        final String correlationId =
-                request.getFirstHeader(HTTPAdapterConstants.Http.CORRELATION_ID_REQUEST_HEADER).getValue();
+        final String correlationId = HTTPAdapterUtil.getCorrelationID(eventPayload);
 
         CompletableFuture<HttpResponse> future = clientManager.executeAsync(request);
 
@@ -121,7 +122,9 @@ public class HTTPEventPublisherImpl implements EventPublisher {
             try {
                 PrivilegedCarbonContext.startTenantFlow();
                 PrivilegedCarbonContext.getThreadLocalCarbonContext().setTenantDomain(eventContext.getTenantDomain());
-                MDC.put(CORRELATION_ID_MDC, correlationId);
+                if (StringUtils.isNotEmpty(correlationId)) {
+                    MDC.put(CORRELATION_ID_MDC, correlationId);
+                }
                 MDC.put(TENANT_DOMAIN, eventContext.getTenantDomain());
                 if (throwable == null) {
                     int status = response.getStatusLine().getStatusCode();
@@ -142,15 +145,15 @@ public class HTTPEventPublisherImpl implements EventPublisher {
                                     "Publish attempt failed with status code: " + status +
                                             ". Retrying… (" + retriesLeft + " attempts left)");
                             sendWithRetries(eventPayload, eventContext, url, secret, retriesLeft - 1);
-                        } else {
-                            handleResponseCorrelationLog(request, requestStartTime,
-                                    HTTPCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
-                                    String.valueOf(status), response.getStatusLine().getReasonPhrase());
-                            printPublisherDiagnosticLog(eventContext, eventPayload, url,
-                                    HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
-                                    DiagnosticLog.ResultStatus.FAILED,
-                                    "Failed to publish event data to endpoint. Status code: " + status);
                         }
+                        handleResponseCorrelationLog(request, requestStartTime,
+                                HTTPCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
+                                String.valueOf(status), response.getStatusLine().getReasonPhrase());
+                        printPublisherDiagnosticLog(eventContext, eventPayload, url,
+                                HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
+                                DiagnosticLog.ResultStatus.FAILED,
+                                "Failed to publish event data to endpoint. Status code: " + status +
+                                        ". Maximum retries exceeded.");
                     }
                 } else {
                     if (retriesLeft > 0) {
@@ -160,20 +163,21 @@ public class HTTPEventPublisherImpl implements EventPublisher {
                                 "Publish attempt failed due to exception. Retrying… (" +
                                         retriesLeft + " attempts left)");
                         sendWithRetries(eventPayload, eventContext, url, secret, retriesLeft - 1);
-                    } else {
-                        handleResponseCorrelationLog(request, requestStartTime,
-                                HTTPCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
-                                throwable.getMessage());
-                        printPublisherDiagnosticLog(eventContext, eventPayload, url,
-                                HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
-                                DiagnosticLog.ResultStatus.FAILED,
-                                "Failed to publish event data to endpoint.");
-                        log.warn("Failed to publish event data to endpoint: " + url);
-                        log.debug("Failed to publish event data to endpoint. ", throwable);
                     }
+                    handleResponseCorrelationLog(request, requestStartTime,
+                            HTTPCorrelationLogUtils.RequestStatus.FAILED.getStatus(),
+                            throwable.getMessage());
+                    printPublisherDiagnosticLog(eventContext, eventPayload, url,
+                            HTTPAdapterConstants.LogConstants.ActionIDs.PUBLISH_EVENT,
+                            DiagnosticLog.ResultStatus.FAILED,
+                            "Failed to publish event data to endpoint. Maximum retries exceeded.");
+                    log.warn("Failed to publish event data to endpoint: " + url + "Maximum retries exceeded.");
+                    log.debug("Failed to publish event data to endpoint: " + url, throwable);
                 }
             } finally {
-                MDC.remove(CORRELATION_ID_MDC);
+                if (StringUtils.isNotEmpty(correlationId)) {
+                    MDC.remove(CORRELATION_ID_MDC);
+                }
                 MDC.remove(TENANT_DOMAIN);
                 PrivilegedCarbonContext.endTenantFlow();
             }
