@@ -45,7 +45,13 @@ import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -67,6 +73,11 @@ public class ClientManager {
 
     private static final Log LOG = LogFactory.getLog(ClientManager.class);
     private final CloseableHttpAsyncClient httpAsyncClient;
+    private static final int MAX_RETRIES = 2;
+    /**
+     * Global executor used for asynchronous callbacks.
+     */
+    private final Executor asyncCallbackExecutor;
 
     public ClientManager() throws HTTPAdapterException {
 
@@ -81,7 +92,7 @@ public class ClientManager {
                             .getHTTPConnectionTimeout())
                     .setSoTimeout(
                             HTTPAdapterDataHolder.getInstance().getAdapterConfiguration().getHttpReadTimeout())
-                    .setIoThreadCount(8)
+                    .setIoThreadCount(5)
                     .build();
             ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(ioReactorConfig);
             PoolingNHttpClientConnectionManager asyncConnectionManager =
@@ -105,9 +116,47 @@ public class ClientManager {
                     config.getSocketTimeout() + ", maxConnections=" +
                     asyncConnectionManager.getMaxTotal() + ", maxConnectionsPerRoute=" +
                     asyncConnectionManager.getDefaultMaxPerRoute());
+
+            int poolSize = 10; // number of worker threads
+            int queueCapacity = 150; // maximum queued callbacks
+
+            // Custom handler that logs when the queue is full and discards the task.
+            RejectedExecutionHandler handler = (r, executor) -> {
+                LOG.info("Async callback queue is full; discarding task of publishing events.");
+                // the task is silently dropped
+            };
+
+            this.asyncCallbackExecutor = new ThreadPoolExecutor(
+                    poolSize,
+                    poolSize,
+                    0L,
+                    TimeUnit.MILLISECONDS,
+                    new ArrayBlockingQueue<>(queueCapacity),
+                    Executors.defaultThreadFactory(),
+                    handler);
         } catch (IOException e) {
             throw HTTPAdapterUtil.handleServerException(ERROR_GETTING_ASYNC_CLIENT, e);
         }
+    }
+
+    /**
+     * Get the executor for asynchronous callbacks.
+     *
+     * @return Executor instance for async callbacks.
+     */
+    public Executor getAsyncCallbackExecutor() {
+
+        return asyncCallbackExecutor;
+    }
+
+    /**
+     * Get the Max Retries for HTTP requests.
+     *
+     * @return Maximum number of retries.
+     */
+    public int getMaxRetries() {
+
+        return MAX_RETRIES;
     }
 
     public CloseableHttpAsyncClient getHttpAsyncClient() {

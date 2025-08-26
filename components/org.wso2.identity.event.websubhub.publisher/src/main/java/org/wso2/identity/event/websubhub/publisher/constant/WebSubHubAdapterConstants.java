@@ -192,9 +192,12 @@ public class WebSubHubAdapterConstants {
 
             }
 
-            public static final String URL = "url";
-            public static final String TENANT_DOMAIN = "tenant domain";
             public static final String TOPIC = "topic";
+            public static final String EVENTS = "events";
+            public static final String CHANNEL = "channel";
+            public static final String ENDPOINT = "endpoint";
+            public static final String EVENT_URI = "event uri";
+            public static final String EVENT_PROFILE_NAME = "event profile name";
         }
     }
 

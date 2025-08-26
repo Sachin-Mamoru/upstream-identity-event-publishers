@@ -22,14 +22,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpPost;
-import org.slf4j.MDC;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import static org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils.CORRELATION_ID_MDC;
-import static org.wso2.identity.event.http.publisher.internal.constant.HTTPAdapterConstants.Http.CORRELATION_ID_REQUEST_HEADER;
 
 /**
  * This class contains the utility methods for adding correlation logs for http publisher.
@@ -51,12 +47,7 @@ public class HTTPCorrelationLogUtils {
      */
     public static void handleResponseCorrelationLog(HttpPost request, long requestStartTime, String... otherParams) {
 
-        try {
-            MDC.put(CORRELATION_ID_MDC, request.getFirstHeader(CORRELATION_ID_REQUEST_HEADER).getValue());
-            HTTPCorrelationLogUtils.triggerCorrelationLogForResponse(request, requestStartTime, otherParams);
-        } finally {
-            MDC.remove(CORRELATION_ID_MDC);
-        }
+        HTTPCorrelationLogUtils.triggerCorrelationLogForResponse(request, requestStartTime, otherParams);
     }
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, WSO2 LLC. (http://www.wso2.com).
+ * Copyright (c) 2024-2025, WSO2 LLC. (http://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -56,7 +56,13 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManagerFactory;
@@ -79,6 +85,11 @@ public class ClientManager {
     private final CloseableHttpAsyncClient httpAsyncClient;
     private final CloseableHttpClient httpClient;
     private CloseableHttpClient mtlsHttpClient = null;
+    private static final int MAX_RETRIES = 2;
+    /**
+     * Global executor used for asynchronous callbacks.
+     */
+    private final Executor asyncCallbackExecutor;
 
     public ClientManager() throws WebSubAdapterException {
 
@@ -121,10 +132,48 @@ public class ClientManager {
                     .isMtlsEnabled()) {
                 mtlsHttpClient = getMTLSClient();
             }
+
+            int poolSize = 10; // number of worker threads
+            int queueCapacity = 150; // maximum queued callbacks
+
+            // Custom handler that logs when the queue is full and discards the task.
+            RejectedExecutionHandler handler = (r, executor) -> {
+                LOG.info("Async callback queue is full; discarding task of publishing events.");
+                // the task is silently dropped
+            };
+
+            this.asyncCallbackExecutor = new ThreadPoolExecutor(
+                    poolSize,
+                    poolSize,
+                    0L,
+                    TimeUnit.MILLISECONDS,
+                    new ArrayBlockingQueue<>(queueCapacity),
+                    Executors.defaultThreadFactory(),
+                    handler);
         } catch (IOException e) {
             throw WebSubHubAdapterUtil.handleServerException(
                     WebSubHubAdapterConstants.ErrorMessages.ERROR_GETTING_ASYNC_CLIENT, e);
         }
+    }
+
+    /**
+     * Get the executor for asynchronous callbacks.
+     *
+     * @return Executor instance for async callbacks.
+     */
+    public Executor getAsyncCallbackExecutor() {
+
+        return asyncCallbackExecutor;
+    }
+
+    /**
+     * Get the Max Retries for HTTP requests.
+     *
+     * @return Maximum number of retries.
+     */
+    public int getMaxRetries() {
+
+        return MAX_RETRIES;
     }
 
     private CloseableHttpClient getMTLSClient() throws WebSubAdapterException {
@@ -248,7 +297,7 @@ public class ClientManager {
                             .getHTTPConnectionTimeout())
                     .setSoTimeout(
                             WebSubHubAdapterDataHolder.getInstance().getAdapterConfiguration().getHttpReadTimeout())
-                    .setIoThreadCount(8)
+                    .setIoThreadCount(5)
                     .build();
 
             ConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(ioReactorConfig);
