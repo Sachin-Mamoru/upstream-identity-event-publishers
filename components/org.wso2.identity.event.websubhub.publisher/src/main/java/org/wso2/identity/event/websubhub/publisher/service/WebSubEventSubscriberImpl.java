@@ -32,6 +32,7 @@ import org.wso2.carbon.identity.subscription.management.api.model.SubscriptionSt
 import org.wso2.carbon.identity.subscription.management.api.model.WebhookSubscriptionRequest;
 import org.wso2.carbon.identity.subscription.management.api.model.WebhookUnsubscriptionRequest;
 import org.wso2.carbon.identity.subscription.management.api.service.EventSubscriber;
+import org.wso2.carbon.utils.DiagnosticLog;
 import org.wso2.identity.event.websubhub.publisher.constant.WebSubHubAdapterConstants;
 import org.wso2.identity.event.websubhub.publisher.exception.WebSubAdapterException;
 import org.wso2.identity.event.websubhub.publisher.internal.ClientManager;
@@ -54,6 +55,7 @@ import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterU
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleFailedOperation;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleServerException;
 import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.handleSuccessfulOperation;
+import static org.wso2.identity.event.websubhub.publisher.util.WebSubHubAdapterUtil.printSubscriberDiagnosticLog;
 
 /**
  * OSGi service for managing WebSubHub subscriptions.
@@ -75,7 +77,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
         List<Subscription> subscriptions = new ArrayList<>();
         for (String channelToSubscribe : webhookSubscriptionRequest.getChannelsToSubscribe()) {
             try {
-                makeSubscriptionAPICall(
+                makeSubscriptionAPICall(channelToSubscribe,
                         constructHubTopic(channelToSubscribe, webhookSubscriptionRequest.getEventProfileName(),
                                 webhookSubscriptionRequest.getEventProfileVersion(),
                                 tenantDomain), getWebSubBaseURL(), WebSubHubAdapterConstants.Http.SUBSCRIBE,
@@ -110,7 +112,7 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
         List<Subscription> unsubscriptions = new ArrayList<>();
         for (String channelToUnsubscribe : webhookUnsubscriptionRequest.getChannelToUnsubscribe()) {
             try {
-                makeSubscriptionAPICall(
+                makeSubscriptionAPICall(channelToUnsubscribe,
                         constructHubTopic(channelToUnsubscribe, webhookUnsubscriptionRequest.getEventProfileName(),
                                 webhookUnsubscriptionRequest.getEventProfileVersion(),
                                 tenantDomain), getWebSubBaseURL(), WebSubHubAdapterConstants.Http.UNSUBSCRIBE,
@@ -138,7 +140,8 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
         return unsubscriptions;
     }
 
-    private void makeSubscriptionAPICall(String topic, String webSubHubBaseUrl, String operation, String callbackUrl,
+    private void makeSubscriptionAPICall(String channelToSubscribe, String topic, String webSubHubBaseUrl,
+                                         String operation, String callbackUrl,
                                          String secret) throws WebSubAdapterException {
 
         ClientManager clientManager = WebSubHubAdapterDataHolder.getInstance().getClientManager();
@@ -158,11 +161,18 @@ public class WebSubEventSubscriberImpl implements EventSubscriber {
         WebSubHubCorrelationLogUtils.triggerCorrelationLogForRequest(httpPost);
         final long requestStartTime = System.currentTimeMillis();
 
+        printSubscriberDiagnosticLog(channelToSubscribe, callbackUrl, operation,
+                DiagnosticLog.ResultStatus.SUCCESS, "Initiated " + operation + " channel request to WebSubHub.");
+
         try (CloseableHttpResponse response = (CloseableHttpResponse) clientManager.executeSubscriberRequest(
                 httpPost)) {
             handleSubscriptionResponse(response, httpPost, topic, operation, requestStartTime);
+            printSubscriberDiagnosticLog(channelToSubscribe, callbackUrl, operation,
+                    DiagnosticLog.ResultStatus.SUCCESS, "Successful " + operation + " channel request to WebSubHub.");
         } catch (IOException | WebSubAdapterException e) {
             log.debug("Error subscribing to topic: " + topic + ". Error: " + e.getMessage(), e);
+            printSubscriberDiagnosticLog(channelToSubscribe, callbackUrl, operation,
+                    DiagnosticLog.ResultStatus.FAILED, "Failed " + operation + " channel request to WebSubHub.");
             throw handleServerException(ERROR_SUBSCRIBING_TO_TOPIC, e);
         }
     }

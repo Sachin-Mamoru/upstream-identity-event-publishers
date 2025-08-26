@@ -36,6 +36,7 @@ import org.wso2.identity.event.http.publisher.internal.service.impl.HTTPEventPub
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -128,6 +129,7 @@ public class HTTPEventPublisherImplTest {
             when(mockClientManager.executeAsync(any())).thenReturn(future);
             when(mockClientManager.createHttpPost(any(), any(), any())).thenReturn(
                     mock(org.apache.http.client.methods.HttpPost.class));
+            when(mockClientManager.getAsyncCallbackExecutor()).thenReturn((Executor) Runnable::run);
 
             // Execute and verify no exception is thrown
             adapterService.publish(payload, eventContext);
